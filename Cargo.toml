@@ -4,3 +4,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bevy = "0.20.1"
+
+# Enable a small amount of optimization in the dev profile.
+[profile.dev]
+opt-level = 1
+
+# Enable a large amount of optimization in the dev profile for dependencies.
+[profile.dev.package."*"]
+opt-level = 3
+
+# The release profile is focused on performance and small size
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
