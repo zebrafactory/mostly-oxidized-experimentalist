@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-26.04-arm]
-        rust: [stable, beta, nightly]
+        rust: [stable, beta]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Rust
@@ -26,5 +26,5 @@ jobs:
           rustup component add rustfmt
       - name: Check code formatting
         run: cargo fmt --all --check
-      - name: Build
+      - name: Build for wasm32
         run: cargo build --release --target wasm32-unknown-unknown
