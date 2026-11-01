@@ -1,7 +1,7 @@
-# Bevy Jam 8
+# Mostly Oxidized Experimentalist
 
-This shall be my entry for [Bevy Jam 8](https://itch.io/jam/bevy-jam-8).
+This shall be our Alchemy-themed entry for [Bevy Jam 8](https://itch.io/jam/bevy-jam-8).
 
-I like [Bevy](https://bevy.org/).
+We like [Bevy](https://bevy.org/).
 
-I like [Rust](https://rust-lang.org/).
+We like [Rust](https://rust-lang.org/).
