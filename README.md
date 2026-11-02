@@ -12,3 +12,10 @@ cargo install wasm-bindgen-cli
 cargo build --release --target wasm32-unknown-unknown
 wasm-server-runner target/wasm32-unknown-unknown/release/mostly-oxidized-experimentalist.wasm
 ```
+
+For iterating with native build:
+
+```sh
+sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev
+cargo run
+```

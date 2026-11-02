@@ -14,7 +14,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
-        .add_systems(Update, mouse_move)
+        .add_systems(Update, (mouse_move, button_input).chain())
         .run();
 }
 
@@ -37,20 +37,34 @@ fn setup(
     ));
 }
 
-fn mouse_move(
-    motion: Res<AccumulatedMouseMotion>,
-    mut single: Single<(&Camera3d, &mut Transform)>,
+fn button_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
     mut cursor_options: Single<&mut CursorOptions>,
 ) {
-    let delta = motion.delta;
-    if delta.x != 0.0 || delta.y != 0.0 {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        if !cursor_options.visible {
+            cursor_options.visible = true;
+            cursor_options.grab_mode = CursorGrabMode::None;
+        }
+    }
+    if mouse.any_just_pressed([MouseButton::Left, MouseButton::Right]) {
         if cursor_options.visible {
             cursor_options.visible = false;
             cursor_options.grab_mode = CursorGrabMode::Locked;
         }
+    }
+}
+
+fn mouse_move(
+    motion: Res<AccumulatedMouseMotion>,
+    mut single: Single<(&Camera3d, &mut Transform)>,
+) {
+    let delta = motion.delta;
+    if delta.x != 0.0 || delta.y != 0.0 {
         let delta_yaw = -delta.x * 0.003;
         let delta_pitch = -delta.y * 0.002;
-        let (camera, mut transform) = single.into_inner();
+        let (_camera, mut transform) = single.into_inner();
         let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
         let yaw = yaw + delta_yaw;
         let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
