@@ -37,6 +37,30 @@ fn setup(
     ));
 
     commands.spawn((
+        RigidBody::Dynamic,
+        Collider::cuboid(5.0, 0.25, 0.5),
+        Mesh3d(meshes.add(Cuboid::new(5.0, 0.25, 0.5))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.4, 0.7, 0.9),
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 1.0, -4.0),
+    ));
+
+    for x_offset in [-2.0, 2.0] {
+        commands.spawn((
+            RigidBody::Dynamic,
+            Collider::sphere(0.5),
+            Mesh3d(meshes.add(Sphere::new(0.5))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgb(0.8, 0.8, 0.8),
+                ..default()
+            })),
+            Transform::from_xyz(x_offset, 1.5, -4.0),
+        ));
+    }
+
+    commands.spawn((
         PointLight {
             shadow_maps_enabled: true,
             contact_shadows_enabled: true,
