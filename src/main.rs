@@ -11,6 +11,11 @@ const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
 const PLAYER_RADIUS: f32 = 0.5;
 
+// FIXME: depending on the exact value here, the balls can fall and be still or fall and move away
+// from the camera. This might be a bug in Avian3d as it seems the size should not tilt the
+// behavior like that.
+const BALL_RADIUS: f32 = 0.6;
+
 #[derive(Component)]
 struct Resetable {
     translation: Vec3,
@@ -96,8 +101,8 @@ fn setup(
         commands.spawn((
             Ball,
             RigidBody::Dynamic,
-            Collider::sphere(0.5),
-            Mesh3d(meshes.add(Sphere::new(0.5))),
+            Collider::sphere(BALL_RADIUS),
+            Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.8, 0.8, 0.8),
                 ..default()
