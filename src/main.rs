@@ -11,6 +11,10 @@ const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
 const PLAYER_RADIUS: f32 = 0.5;
 
+const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
+const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
+const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
+
 // FIXME: depending on the exact value here, the balls can fall and be still or fall and move away
 // from the camera. This might be a bug in Avian3d as it seems the size should not tilt the
 // behavior like that.
@@ -53,12 +57,15 @@ struct Ball;
 #[derive(Event)]
 struct ResetWorld;
 
+#[derive(Event)]
+struct ModifyDensity;
+
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
         .add_systems(Update, (mouse_move, button_input).chain())
-        .add_systems(Update, ray_cast_system)
+        .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .run();
 }
@@ -68,6 +75,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // The Player (a camera in a collider)
     commands.spawn((
         RigidBody::Dynamic,
         Collider::sphere(PLAYER_RADIUS),
@@ -75,23 +83,25 @@ fn setup(
         Resetable::from_xyz(0.0, 3.0, 0.0),
     ));
 
+    // The "floor"
     commands.spawn((
         RigidBody::Static,
         Collider::cylinder(FLOOR_RADIUS, FLOOR_HALF_HEIGHT),
         Mesh3d(meshes.add(Cylinder::new(FLOOR_RADIUS, FLOOR_HALF_HEIGHT))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.9, 0.7, 0.8),
+            base_color: FLOOR_COLOR,
             ..default()
         })),
         Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT, 0.0),
     ));
 
+    // The balance beam
     commands.spawn((
         RigidBody::Dynamic,
         Collider::cuboid(5.0, 0.25, 0.5),
         Mesh3d(meshes.add(Cuboid::new(5.0, 0.25, 0.5))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.4, 0.7, 0.9),
+            base_color: BEAM_COLOR,
             ..default()
         })),
         Resetable::from_xyz(0.0, 1.0, -4.0),
@@ -104,7 +114,7 @@ fn setup(
             Collider::sphere(BALL_RADIUS),
             Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgb(0.8, 0.8, 0.8),
+                base_color: BALL_COLOR,
                 ..default()
             })),
             Resetable::from_xyz(x_offset, 1.5, -4.0),
@@ -138,6 +148,8 @@ fn button_input(
         if cursor_options.visible {
             cursor_options.visible = false;
             cursor_options.grab_mode = CursorGrabMode::Locked;
+        } else {
+            commands.trigger(ModifyDensity);
         }
     }
     if keyboard.just_pressed(KeyCode::KeyR) {
@@ -147,20 +159,24 @@ fn button_input(
 
 fn mouse_move(
     motion: Res<AccumulatedMouseMotion>,
+    cursor_options: Single<&mut CursorOptions>,
     mut transform: Single<&mut Transform, With<Camera3d>>,
 ) {
-    let delta = motion.delta;
-    if delta.x != 0.0 || delta.y != 0.0 {
-        let delta_yaw = -delta.x * 0.003;
-        let delta_pitch = -delta.y * 0.002;
-        let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
-        let yaw = yaw + delta_yaw;
-        let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
-        transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+    if !cursor_options.visible {
+        let delta = motion.delta;
+        if delta.x != 0.0 || delta.y != 0.0 {
+            let delta_yaw = -delta.x * 0.003;
+            let delta_pitch = -delta.y * 0.002;
+            let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
+            let yaw = yaw + delta_yaw;
+            let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
+            transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+        }
     }
 }
 
 fn ray_cast_system(
+    _on: On<ModifyDensity>,
     mut ray_cast: MeshRayCast,
     transform: Single<&Transform, With<Camera3d>>,
     query: Query<&MeshMaterial3d<StandardMaterial>, With<Ball>>,
