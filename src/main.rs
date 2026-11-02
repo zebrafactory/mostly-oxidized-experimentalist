@@ -113,9 +113,10 @@ fn mouse_move(
 fn ray_cast_system(
     mut ray_cast: MeshRayCast,
     transform: Single<&Transform, With<Camera3d>>,
-    query: Query<(), With<Ball>>,
+    query: Query<&MeshMaterial3d<StandardMaterial>, With<Ball>>,
+    mut commands: Commands,
 ) {
-    let ray = Ray3d::new(transform.translation, -transform.local_z());
+    let ray = Ray3d::new(transform.translation, transform.forward());
     let filter = |entity| query.contains(entity);
     let early_exit_test = |_entity| false;
     let settings = MeshRayCastSettings::default()
@@ -123,5 +124,6 @@ fn ray_cast_system(
         .with_early_exit_test(&early_exit_test);
     for (entity, _hit) in ray_cast.cast_ray(ray, &settings) {
         println!("hit on {entity:?}");
+        commands.entity(*entity).despawn();
     }
 }
