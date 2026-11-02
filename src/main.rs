@@ -95,12 +95,14 @@ fn button_input(
     }
 }
 
-fn mouse_move(motion: Res<AccumulatedMouseMotion>, single: Single<(&Camera3d, &mut Transform)>) {
+fn mouse_move(
+    motion: Res<AccumulatedMouseMotion>,
+    mut transform: Single<&mut Transform, With<Camera3d>>,
+) {
     let delta = motion.delta;
     if delta.x != 0.0 || delta.y != 0.0 {
         let delta_yaw = -delta.x * 0.003;
         let delta_pitch = -delta.y * 0.002;
-        let (_camera, mut transform) = single.into_inner();
         let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
         let yaw = yaw + delta_yaw;
         let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
@@ -110,10 +112,9 @@ fn mouse_move(motion: Res<AccumulatedMouseMotion>, single: Single<(&Camera3d, &m
 
 fn ray_cast_system(
     mut ray_cast: MeshRayCast,
-    single: Single<(&Camera3d, &Transform)>,
+    transform: Single<&Transform, With<Camera3d>>,
     query: Query<(), With<Ball>>,
 ) {
-    let (_camera, transform) = single.into_inner();
     let ray = Ray3d::new(transform.translation, -transform.local_z());
     let filter = |entity| query.contains(entity);
     let early_exit_test = |_entity| false;
