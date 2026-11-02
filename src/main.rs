@@ -9,9 +9,44 @@ use std::f32::consts::FRAC_PI_2;
 const FLOOR_RADIUS: f32 = 100.0;
 const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
+const PLAYER_RADIUS: f32 = 0.5;
+
+#[derive(Component)]
+struct Resetable {
+    translation: Vec3,
+    rotation: Quat,
+    scale: Vec3,
+}
+
+impl Resetable {
+    fn from_xyz(x: f32, y: f32, z: f32) -> (Self, Transform) {
+        let transform = Transform::from_xyz(x, y, z);
+        Self::from_transform(transform)
+    }
+
+    fn from_transform(transform: Transform) -> (Self, Transform) {
+        (
+            Resetable {
+                translation: transform.translation,
+                rotation: transform.rotation,
+                scale: transform.scale,
+            },
+            transform,
+        )
+    }
+
+    fn reset(&self, transform: &mut Transform) {
+        transform.translation = self.translation;
+        transform.rotation = self.rotation;
+        transform.scale = self.scale;
+    }
+}
 
 #[derive(Component)]
 struct Ball;
+
+#[derive(Event)]
+struct ResetWorld;
 
 fn main() {
     App::new()
@@ -19,6 +54,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, (mouse_move, button_input).chain())
         .add_systems(Update, ray_cast_system)
+        .add_observer(reset_world)
         .run();
 }
 
@@ -27,7 +63,12 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn(Camera3d::default());
+    commands.spawn((
+        RigidBody::Dynamic,
+        Collider::sphere(PLAYER_RADIUS),
+        Camera3d::default(),
+        Resetable::from_xyz(0.0, 3.0, 0.0),
+    ));
 
     commands.spawn((
         RigidBody::Static,
@@ -48,7 +89,7 @@ fn setup(
             base_color: Color::srgb(0.4, 0.7, 0.9),
             ..default()
         })),
-        Transform::from_xyz(0.0, 1.0, -4.0),
+        Resetable::from_xyz(0.0, 1.0, -4.0),
     ));
 
     for x_offset in [-2.0, 2.0] {
@@ -61,7 +102,7 @@ fn setup(
                 base_color: Color::srgb(0.8, 0.8, 0.8),
                 ..default()
             })),
-            Transform::from_xyz(x_offset, 1.5, -4.0),
+            Resetable::from_xyz(x_offset, 1.5, -4.0),
         ));
     }
 
@@ -80,6 +121,7 @@ fn button_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     mut cursor_options: Single<&mut CursorOptions>,
+    mut commands: Commands,
 ) {
     if keyboard.just_pressed(KeyCode::Escape) {
         if !cursor_options.visible {
@@ -92,6 +134,9 @@ fn button_input(
             cursor_options.visible = false;
             cursor_options.grab_mode = CursorGrabMode::Locked;
         }
+    }
+    if keyboard.just_pressed(KeyCode::KeyR) {
+        commands.trigger(ResetWorld);
     }
 }
 
@@ -125,5 +170,22 @@ fn ray_cast_system(
     for (entity, _hit) in ray_cast.cast_ray(ray, &settings) {
         println!("hit on {entity:?}");
         commands.entity(*entity).despawn();
+    }
+}
+
+fn reset_world(
+    _on: On<ResetWorld>,
+    mut query: Query<(
+        &Resetable,
+        &mut Transform,
+        &mut LinearVelocity,
+        &mut AngularVelocity,
+    )>,
+) {
+    println!("reset world");
+    for (resetable, mut transform, mut linear_velocity, mut angular_velocity) in &mut query {
+        resetable.reset(&mut transform);
+        linear_velocity.0 = Vec3::ZERO;
+        angular_velocity.0 = Vec3::ZERO;
     }
 }
