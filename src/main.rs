@@ -10,11 +10,15 @@ const FLOOR_RADIUS: f32 = 100.0;
 const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
 
+#[derive(Component)]
+struct Ball;
+
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
         .add_systems(Update, (mouse_move, button_input).chain())
+        .add_systems(Update, ray_cast_system)
         .run();
 }
 
@@ -49,6 +53,7 @@ fn setup(
 
     for x_offset in [-2.0, 2.0] {
         commands.spawn((
+            Ball,
             RigidBody::Dynamic,
             Collider::sphere(0.5),
             Mesh3d(meshes.add(Sphere::new(0.5))),
@@ -100,5 +105,22 @@ fn mouse_move(motion: Res<AccumulatedMouseMotion>, single: Single<(&Camera3d, &m
         let yaw = yaw + delta_yaw;
         let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
         transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+    }
+}
+
+fn ray_cast_system(
+    mut ray_cast: MeshRayCast,
+    single: Single<(&Camera3d, &Transform)>,
+    query: Query<(), With<Ball>>,
+) {
+    let (_camera, transform) = single.into_inner();
+    let ray = Ray3d::new(transform.translation, -transform.local_z());
+    let filter = |entity| query.contains(entity);
+    let early_exit_test = |_entity| false;
+    let settings = MeshRayCastSettings::default()
+        .with_filter(&filter)
+        .with_early_exit_test(&early_exit_test);
+    for (entity, _hit) in ray_cast.cast_ray(ray, &settings) {
+        println!("hit on {entity:?}");
     }
 }
