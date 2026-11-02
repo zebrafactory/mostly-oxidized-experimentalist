@@ -92,7 +92,18 @@ fn setup(
             base_color: FLOOR_COLOR,
             ..default()
         })),
-        Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT, 0.0),
+        Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT * 2.0, 0.0),
+    ));
+
+    commands.spawn((
+        RigidBody::Static,
+        Collider::sphere(BALL_RADIUS),
+        Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: BALL_COLOR,
+            ..default()
+        })),
+        Resetable::from_xyz(0.0, 0.0, -4.0),
     ));
 
     // The balance beam
@@ -104,7 +115,7 @@ fn setup(
             base_color: BEAM_COLOR,
             ..default()
         })),
-        Resetable::from_xyz(0.0, 1.0, -4.0),
+        Resetable::from_xyz(0.0, 2.0, -4.0),
     ));
 
     for x_offset in [-2.0, 2.0] {
@@ -117,7 +128,7 @@ fn setup(
                 base_color: BALL_COLOR,
                 ..default()
             })),
-            Resetable::from_xyz(x_offset, 1.5, -4.0),
+            Resetable::from_xyz(x_offset, 2.5, -4.0),
         ));
     }
 
