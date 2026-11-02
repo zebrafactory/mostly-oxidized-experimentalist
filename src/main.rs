@@ -10,15 +10,16 @@ const FLOOR_RADIUS: f32 = 100.0;
 const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
 const PLAYER_RADIUS: f32 = 0.5;
+const BALL_RADIUS: f32 = 0.7;
+const Z_OFFSET: f32 = -6.0;
+const BEAM_LENGTH: f32 = 5.0;
+const BEAM_HEIGHT: f32 = 0.25;
+const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
 const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
-
-// FIXME: depending on the exact value here, the balls can fall and be still or fall and move away
-// from the camera. This might be a bug in Avian3d as it seems the size should not tilt the
-// behavior like that.
-const BALL_RADIUS: f32 = 0.6;
+const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 
 #[derive(Component)]
 struct Resetable {
@@ -80,10 +81,10 @@ fn setup(
         RigidBody::Dynamic,
         Collider::sphere(PLAYER_RADIUS),
         Camera3d::default(),
-        Resetable::from_xyz(0.0, 3.0, 0.0),
+        Resetable::from_xyz(0.0, PLAYER_RADIUS * 2.0, 0.0),
     ));
 
-    // The "floor"
+    // Static floor
     commands.spawn((
         RigidBody::Static,
         Collider::cylinder(FLOOR_RADIUS, FLOOR_HALF_HEIGHT),
@@ -92,33 +93,35 @@ fn setup(
             base_color: FLOOR_COLOR,
             ..default()
         })),
-        Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT * 2.0, 0.0),
+        Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT / 2.0, 0.0),
     ));
 
+    // Static sphere the beam balances on
     commands.spawn((
         RigidBody::Static,
         Collider::sphere(BALL_RADIUS),
         Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: BALL_COLOR,
+            base_color: CENTER_BALL_COLOR,
             ..default()
         })),
-        Resetable::from_xyz(0.0, 0.0, -4.0),
+        Resetable::from_xyz(0.0, BALL_RADIUS, Z_OFFSET),
     ));
 
     // The balance beam
     commands.spawn((
         RigidBody::Dynamic,
-        Collider::cuboid(5.0, 0.25, 0.5),
-        Mesh3d(meshes.add(Cuboid::new(5.0, 0.25, 0.5))),
+        Collider::cuboid(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH),
+        Mesh3d(meshes.add(Cuboid::new(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: BEAM_COLOR,
             ..default()
         })),
-        Resetable::from_xyz(0.0, 2.0, -4.0),
+        Resetable::from_xyz(0.0, BALL_RADIUS * 2.0 + BEAM_HEIGHT * 0.5, Z_OFFSET),
     ));
 
-    for x_offset in [-2.0, 2.0] {
+    // The dynamic spheres at each end of the balance beam
+    for sign in [-0.5, 0.5] {
         commands.spawn((
             Ball,
             RigidBody::Dynamic,
@@ -128,7 +131,11 @@ fn setup(
                 base_color: BALL_COLOR,
                 ..default()
             })),
-            Resetable::from_xyz(x_offset, 2.5, -4.0),
+            Resetable::from_xyz(
+                sign * BEAM_LENGTH,
+                BALL_RADIUS * 3.0 + BEAM_HEIGHT,
+                Z_OFFSET,
+            ),
         ));
     }
 
