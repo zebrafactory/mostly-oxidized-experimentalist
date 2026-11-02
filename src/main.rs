@@ -35,6 +35,16 @@ fn setup(
         })),
         Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT, 0.0),
     ));
+
+    commands.spawn((
+        PointLight {
+            shadow_maps_enabled: true,
+            contact_shadows_enabled: true,
+            intensity: 777_000.0,
+            ..default()
+        },
+        Transform::from_xyz(5.0, 7.0, 5.0),
+    ));
 }
 
 fn button_input(
@@ -56,10 +66,7 @@ fn button_input(
     }
 }
 
-fn mouse_move(
-    motion: Res<AccumulatedMouseMotion>,
-    mut single: Single<(&Camera3d, &mut Transform)>,
-) {
+fn mouse_move(motion: Res<AccumulatedMouseMotion>, single: Single<(&Camera3d, &mut Transform)>) {
     let delta = motion.delta;
     if delta.x != 0.0 || delta.y != 0.0 {
         let delta_yaw = -delta.x * 0.003;
