@@ -2,7 +2,7 @@ use avian3d::prelude::*;
 use bevy::{
     input::mouse::AccumulatedMouseMotion,
     prelude::*,
-    window::{CursorGrabMode, CursorOptions},
+    window::{CursorGrabMode, CursorOptions, PrimaryWindow, WindowMode},
 };
 use std::f32::consts::FRAC_PI_2;
 
@@ -61,6 +61,9 @@ struct ResetWorld;
 #[derive(Event)]
 struct ModifyDensity;
 
+#[derive(Event)]
+struct ToggleFullscreen;
+
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
@@ -68,6 +71,7 @@ fn main() {
         .add_systems(Update, (mouse_move, button_input).chain())
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
+        .add_observer(toggle_fullscreen)
         .run();
 }
 
@@ -173,6 +177,9 @@ fn button_input(
     if keyboard.just_pressed(KeyCode::KeyR) {
         commands.trigger(ResetWorld);
     }
+    if keyboard.just_pressed(KeyCode::F11) {
+        commands.trigger(ToggleFullscreen)
+    }
 }
 
 fn mouse_move(
@@ -227,4 +234,15 @@ fn reset_world(
         linear_velocity.0 = Vec3::ZERO;
         angular_velocity.0 = Vec3::ZERO;
     }
+}
+
+fn toggle_fullscreen(
+    _on: On<ToggleFullscreen>,
+    mut window: Single<&mut Window, With<PrimaryWindow>>,
+) {
+    println!("toggle_fullscreen");
+    window.mode = match window.mode {
+        WindowMode::Windowed => WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
+        _ => WindowMode::Windowed,
+    };
 }
