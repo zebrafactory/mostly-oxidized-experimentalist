@@ -67,6 +67,9 @@ struct ModifyDensity;
 #[derive(Event)]
 struct ToggleFullscreen;
 
+#[derive(Event)]
+struct UnFullscreen;
+
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
@@ -76,6 +79,7 @@ fn main() {
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .add_observer(toggle_fullscreen)
+        .add_observer(un_fullscreen)
         .run();
 }
 
@@ -166,13 +170,12 @@ fn button_input(
     mut commands: Commands,
 ) {
     if keyboard.just_pressed(KeyCode::Escape) {
-        if !cursor_options.visible {
-            cursor_options.visible = true;
-            cursor_options.grab_mode = CursorGrabMode::None;
-        }
+        cursor_options.visible = true;
+        cursor_options.grab_mode = CursorGrabMode::None;
+        commands.trigger(UnFullscreen);
     }
     if mouse.any_just_pressed([MouseButton::Left, MouseButton::Right]) {
-        if cursor_options.visible {
+        if cursor_options.visible || cursor_options.grab_mode != CursorGrabMode::Locked {
             cursor_options.visible = false;
             cursor_options.grab_mode = CursorGrabMode::Locked;
         } else {
@@ -192,7 +195,7 @@ fn mouse_move(
     cursor_options: Single<&mut CursorOptions>,
     mut transform: Single<&mut Transform, With<Camera3d>>,
 ) {
-    if !cursor_options.visible {
+    if !cursor_options.visible && cursor_options.grab_mode == CursorGrabMode::Locked {
         let delta = motion.delta;
         if delta.x != 0.0 || delta.y != 0.0 {
             let delta_yaw = -delta.x * 0.003;
@@ -256,4 +259,8 @@ fn toggle_fullscreen(
             WindowMode::Windowed
         }
     };
+}
+
+fn un_fullscreen(_on: On<UnFullscreen>, mut window: Single<&mut Window, With<PrimaryWindow>>) {
+    window.mode = WindowMode::Windowed;
 }
