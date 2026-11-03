@@ -7,12 +7,13 @@ We like [Bevy](https://bevy.org/).
 We like [Rust](https://rust-lang.org/).
 
 ```sh
-rustup target install wasm32-unknown-unknown
-cargo install wasm-bindgen-cli
-cargo build --release --target wasm32-unknown-unknown
+rustup target add wasm32-unknown-unknown
+cargo install wasm-bindgen-cli --locked
+cargo install wasm-opt --locked
 
-wasm-bindgen --target web --no-typescript --out-dir target/ target/wasm32-unknown-unknown/release/mostly-oxidized-experimentalist.wasm
-wasm-opt -Oz -o target/mostly-oxidized-experimentalist.wasm target/wasm32-unknown-unknown/release/mostly-oxidized-experimentalist.wasm
+cargo build --release --target wasm32-unknown-unknown
+wasm-bindgen --target web --no-typescript --out-dir target/web/ target/wasm32-unknown-unknown/release/mostly-oxidized-experimentalist.wasm
+wasm-opt -Oz -o target/web/mostly-oxidized-experimentalist_bg.wasm target/web/mostly-oxidized-experimentalist_bg.wasm
 ```
 
 For iterating with native build:
