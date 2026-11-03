@@ -20,6 +20,7 @@ const BEAM_HEIGHT: f32 = 0.25;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
+const PLAYER_COLOR: Color = Color::srgb(0.1, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
 const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
@@ -96,6 +97,11 @@ fn setup(
         RigidBody::Dynamic,
         LockedAxes::ROTATION_LOCKED,
         Collider::sphere(PLAYER_RADIUS),
+        Mesh3d(meshes.add(Sphere::new(PLAYER_RADIUS))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: PLAYER_COLOR,
+            ..default()
+        })),
         LinearDamping(2.0),
         GravityScale(2.0),
         Camera3d::default(),
