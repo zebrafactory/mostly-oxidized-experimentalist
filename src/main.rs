@@ -147,8 +147,6 @@ fn setup(
         ));
     }
 
-    commands.add_systems(Startup, add_particle);
-
     commands.spawn((
         PointLight {
             shadow_maps_enabled: true,
