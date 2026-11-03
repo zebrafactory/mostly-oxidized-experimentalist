@@ -12,7 +12,7 @@ const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
 const PLAYER_RADIUS: f32 = 0.5;
 const BALL_RADIUS: f32 = 0.7;
 const Z_OFFSET: f32 = -6.0;
-const BEAM_LENGTH: f32 = 5.0;
+const BEAM_LENGTH: f32 = 6.0;
 const BEAM_HEIGHT: f32 = 0.25;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
 
@@ -125,7 +125,7 @@ fn setup(
     ));
 
     // The dynamic spheres at each end of the balance beam
-    for sign in [-0.5, 0.5] {
+    for sign in [-0.45, 0.45] {
         commands.spawn((
             Ball,
             RigidBody::Dynamic,
@@ -214,7 +214,6 @@ fn ray_cast_system(
         .with_filter(&filter)
         .with_early_exit_test(&early_exit_test);
     for (entity, _hit) in ray_cast.cast_ray(ray, &settings) {
-        println!("hit on {entity:?}");
         commands.entity(*entity).despawn();
     }
 }
@@ -228,7 +227,6 @@ fn reset_world(
         &mut AngularVelocity,
     )>,
 ) {
-    println!("reset world");
     for (resetable, mut transform, mut linear_velocity, mut angular_velocity) in &mut query {
         resetable.reset(&mut transform);
         linear_velocity.0 = Vec3::ZERO;
@@ -239,10 +237,18 @@ fn reset_world(
 fn toggle_fullscreen(
     _on: On<ToggleFullscreen>,
     mut window: Single<&mut Window, With<PrimaryWindow>>,
+    mut cursor_options: Single<&mut CursorOptions>,
 ) {
-    println!("toggle_fullscreen");
     window.mode = match window.mode {
-        WindowMode::Windowed => WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
-        _ => WindowMode::Windowed,
+        WindowMode::Windowed => {
+            cursor_options.visible = false;
+            cursor_options.grab_mode = CursorGrabMode::Locked;
+            WindowMode::BorderlessFullscreen(MonitorSelection::Primary)
+        }
+        _ => {
+            cursor_options.visible = true;
+            cursor_options.grab_mode = CursorGrabMode::None;
+            WindowMode::Windowed
+        }
     };
 }
