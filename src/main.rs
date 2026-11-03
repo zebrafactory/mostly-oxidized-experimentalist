@@ -93,7 +93,7 @@ fn setup(
     // The Player (a camera in a collider)
     commands.spawn((
         RigidBody::Dynamic,
-        LockedAxes::ALL_LOCKED,
+        LockedAxes::ROTATION_LOCKED,
         Collider::sphere(PLAYER_RADIUS),
         LinearDamping(5.0),
         Camera3d::default(),
