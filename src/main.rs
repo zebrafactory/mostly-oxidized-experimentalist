@@ -11,7 +11,7 @@ use crate::particle::*;
 
 const FLOOR_RADIUS: f32 = 100.0;
 const FLOOR_HALF_HEIGHT: f32 = 0.5;
-const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
+const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.5;
 const BALL_RADIUS: f32 = 0.7;
 const Z_OFFSET: f32 = -6.0;
@@ -25,6 +25,7 @@ const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
+const JUMP_IMPULSE: f32 = 11.0; // m/s
 
 #[derive(Component)]
 struct Resetable {
@@ -95,9 +96,10 @@ fn setup(
         RigidBody::Dynamic,
         LockedAxes::ROTATION_LOCKED,
         Collider::sphere(PLAYER_RADIUS),
-        LinearDamping(5.0),
+        LinearDamping(2.0),
+        GravityScale(2.0),
         Camera3d::default(),
-        Resetable::from_xyz(0.0, PLAYER_RADIUS * 2.0, 0.0),
+        Resetable::from_xyz(0.0, PLAYER_RADIUS * 8.0, 0.0),
     ));
 
     // Static floor
@@ -201,13 +203,13 @@ fn button_input(
         // Fly Up
         input.y += 1.0;
     }
+    if keyboard.just_pressed(KeyCode::Space) {
+        linear_velocity.y = JUMP_IMPULSE;
+    }
 
     if input != Vec3::ZERO {
-        println!("{input:?}");
         let delta = input * LINEAR_ACCELERATION * time.delta_secs();
-        let delta = (transform.local_x() * delta.x)
-            + (transform.local_y() * delta.y)
-            + (transform.local_z() * delta.z);
+        let delta = (transform.local_x() * delta.x) + (transform.local_z() * delta.z);
         linear_velocity.0 += delta;
     }
 
