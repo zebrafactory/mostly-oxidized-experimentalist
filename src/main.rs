@@ -83,7 +83,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-){
+) {
     // The Player (a camera in a collider)
     commands.spawn((
         RigidBody::Dynamic,
@@ -146,7 +146,7 @@ fn setup(
             ),
         ));
     }
-    
+
     commands.add_systems(Startup, add_particle);
 
     commands.spawn((
