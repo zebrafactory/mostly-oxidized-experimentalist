@@ -24,6 +24,8 @@ const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
 const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 
+const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
+
 #[derive(Component)]
 struct Resetable {
     translation: Vec3,
@@ -93,6 +95,7 @@ fn setup(
         RigidBody::Dynamic,
         LockedAxes::ALL_LOCKED,
         Collider::sphere(PLAYER_RADIUS),
+        LinearDamping(5.0),
         Camera3d::default(),
         Resetable::from_xyz(0.0, PLAYER_RADIUS * 2.0, 0.0),
     ));
@@ -164,11 +167,50 @@ fn setup(
 }
 
 fn button_input(
+    time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
+    player: Single<(&Transform, &mut LinearVelocity), With<Camera3d>>,
     mut cursor_options: Single<&mut CursorOptions>,
     mut commands: Commands,
 ) {
+    let mut input = Vec3::ZERO;
+    let (transform, mut linear_velocity) = player.into_inner();
+
+    if keyboard.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
+        // Forward
+        input.z -= 1.0;
+    }
+    if keyboard.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) {
+        // Backward
+        input.z += 1.0;
+    }
+    if keyboard.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
+        // Strafe Left
+        input.x -= 1.0;
+    }
+    if keyboard.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
+        // Strafe Right
+        input.x += 1.0;
+    }
+    if keyboard.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
+        // Fly Down
+        input.y -= 1.0;
+    }
+    if keyboard.pressed(KeyCode::Space) {
+        // Fly Up
+        input.y += 1.0;
+    }
+
+    if input != Vec3::ZERO {
+        println!("{input:?}");
+        let delta = input * LINEAR_ACCELERATION * time.delta_secs();
+        let delta = (transform.local_x() * delta.x)
+            + (transform.local_y() * delta.y)
+            + (transform.local_z() * delta.z);
+        linear_velocity.0 += delta;
+    }
+
     if keyboard.just_pressed(KeyCode::Escape) {
         cursor_options.visible = true;
         cursor_options.grab_mode = CursorGrabMode::None;
