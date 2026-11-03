@@ -6,6 +6,9 @@ use bevy::{
 };
 use std::f32::consts::FRAC_PI_2;
 
+mod particle;
+use crate::particle::*;
+
 const FLOOR_RADIUS: f32 = 100.0;
 const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.01;
@@ -68,6 +71,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
+        .add_systems(Startup, add_particle)
         .add_systems(Update, (mouse_move, button_input).chain())
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
@@ -79,7 +83,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-) {
+){
     // The Player (a camera in a collider)
     commands.spawn((
         RigidBody::Dynamic,
@@ -142,6 +146,8 @@ fn setup(
             ),
         ));
     }
+    
+    commands.add_systems(Startup, add_particle);
 
     commands.spawn((
         PointLight {
