@@ -24,6 +24,7 @@ const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const PLAYER_COLOR: Color = Color::srgb(0.2, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
 const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
+const HEAVY_BALL_COLOR: Color = Color::srgb(0.4, 0.4, 0.8);
 const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
@@ -218,7 +219,7 @@ fn setup(
 }
 
 fn player_collision(colliding_entities: Single<&CollidingEntities, With<Player>>) {
-    //println!("collision with {}", colliding_entities.len());
+    println!("collision with {}", colliding_entities.len());
 }
 
 fn button_input(
@@ -317,8 +318,8 @@ fn ray_cast_system(
     _on: On<ModifyDensity>,
     mut ray_cast: MeshRayCast,
     transform: Single<&GlobalTransform, With<PlayerHead>>,
-    mut query: Query<&mut GravityScale, With<Ball>>,
-    mut commands: Commands,
+    mut query: Query<(&mut GravityScale, &MeshMaterial3d<StandardMaterial>), With<Ball>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let ray = Ray3d::new(transform.translation(), transform.forward());
     let filter = |entity| query.contains(entity);
@@ -327,12 +328,14 @@ fn ray_cast_system(
         .with_filter(&filter)
         .with_early_exit_test(&early_exit_test);
     for (entity, _hit) in ray_cast.cast_ray(ray, &settings) {
-        if let Ok(mut gravity_scale) = query.get_mut(*entity) {
+        if let Ok((mut gravity_scale, material_3d)) = query.get_mut(*entity) {
             // Changing ColliderDensity should wourk too in theory, but doesn't,
             // so use GravityScale.
             println!("hit {gravity_scale:?}");
             gravity_scale.0 = 10.0;
-            //commands.entity(*entity).despawn();
+            if let Some(mut m) = materials.get_mut(material_3d) {
+                m.base_color = HEAVY_BALL_COLOR;
+            }
         }
     }
 }
