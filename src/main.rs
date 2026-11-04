@@ -315,11 +315,11 @@ fn mouse_move_pitch(
 fn ray_cast_system(
     _on: On<ModifyDensity>,
     mut ray_cast: MeshRayCast,
-    transform: Single<&Transform, With<Player>>, // FIXME: Raycast is broken becauso of child position With<PlayerHead>
+    transform: Single<&GlobalTransform, With<PlayerHead>>,
     query: Query<&MeshMaterial3d<StandardMaterial>, With<Ball>>,
     mut commands: Commands,
 ) {
-    let ray = Ray3d::new(transform.translation, transform.forward());
+    let ray = Ray3d::new(transform.translation(), transform.forward());
     let filter = |entity| query.contains(entity);
     let early_exit_test = |_entity| false;
     let settings = MeshRayCastSettings::default()
