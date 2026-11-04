@@ -29,7 +29,7 @@ const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 11.0; // m/s
 
-const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
+const CAMERA_3D_PERSON_DISTANCE: f32 = 3.5;
 
 #[derive(Component)]
 struct Resetable {
@@ -64,6 +64,9 @@ impl Resetable {
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct PlayerHead;
 
 #[derive(Component)]
 struct Ball;
@@ -125,10 +128,17 @@ fn setup(
             Resetable::from_xyz(0.0, PLAYER_RADIUS * 8.0, 0.0),
         ))
         .with_children(|parent| {
-            parent.spawn((
-                Camera3d::default(),
-                Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, CAMERA_3D_PERSON_DISTANCE),
-            ));
+            parent
+                .spawn((
+                    PlayerHead,
+                    Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, 0.0),
+                ))
+                .with_children(|sub_parent| {
+                    sub_parent.spawn((
+                        Camera3d::default(),
+                        Transform::from_xyz(0.0, 0.0, CAMERA_3D_PERSON_DISTANCE),
+                    ));
+                });
         });
 
     // Static floor
@@ -289,7 +299,7 @@ fn mouse_move_yaw(
 fn mouse_move_pitch(
     motion: Res<AccumulatedMouseMotion>,
     cursor_options: Single<&mut CursorOptions>,
-    mut transform: Single<&mut Transform, With<Camera3d>>,
+    mut transform: Single<&mut Transform, With<PlayerHead>>,
 ) {
     if !cursor_options.visible && cursor_options.grab_mode == CursorGrabMode::Locked {
         let delta = motion.delta;
@@ -305,7 +315,7 @@ fn mouse_move_pitch(
 fn ray_cast_system(
     _on: On<ModifyDensity>,
     mut ray_cast: MeshRayCast,
-    transform: Single<&Transform, With<Player>>,
+    transform: Single<&Transform, With<Player>>, // FIXME: Raycast is broken becauso of child position With<PlayerHead>
     query: Query<&MeshMaterial3d<StandardMaterial>, With<Ball>>,
     mut commands: Commands,
 ) {
