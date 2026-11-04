@@ -12,7 +12,8 @@ use crate::particle::*;
 const FLOOR_RADIUS: f32 = 100.0;
 const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
-const PLAYER_RADIUS: f32 = 0.5;
+const PLAYER_RADIUS: f32 = 0.4;
+const PLAYER_HALF_HEIGHT: f32 = 1.0;
 const BALL_RADIUS: f32 = 0.7;
 const Z_OFFSET: f32 = -6.0;
 const BEAM_LENGTH: f32 = 6.0;
@@ -96,21 +97,27 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // The Player (a camera in a collider)
-    commands.spawn((
-        Player,
-        RigidBody::Dynamic,
-        Collider::sphere(PLAYER_RADIUS),
-        Mesh3d(meshes.add(Sphere::new(PLAYER_RADIUS))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: PLAYER_COLOR,
-            ..default()
-        })),
-        LockedAxes::ROTATION_LOCKED,
-        LinearDamping(2.0),
-        GravityScale(2.0),
-        Camera3d::default(),
-        Resetable::from_xyz(0.0, PLAYER_RADIUS * 8.0, 0.0),
-    ));
+    commands
+        .spawn((
+            Player,
+            RigidBody::Dynamic,
+            Collider::capsule(PLAYER_RADIUS, PLAYER_HALF_HEIGHT),
+            Mesh3d(meshes.add(Capsule3d::new(PLAYER_RADIUS, PLAYER_HALF_HEIGHT))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: PLAYER_COLOR,
+                ..default()
+            })),
+            LockedAxes::ROTATION_LOCKED,
+            LinearDamping(2.0),
+            GravityScale(2.0),
+            Resetable::from_xyz(0.0, PLAYER_RADIUS * 8.0, 0.0),
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Camera3d::default(),
+                Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, 4.0),
+            ));
+        });
 
     // Static floor
     commands.spawn((
@@ -182,7 +189,7 @@ fn button_input(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
-    player: Single<(&Transform, &mut LinearVelocity), With<Camera3d>>,
+    player: Single<(&Transform, &mut LinearVelocity), With<Player>>,
     mut cursor_options: Single<&mut CursorOptions>,
     mut commands: Commands,
 ) {
@@ -240,7 +247,7 @@ fn button_input(
 fn mouse_move(
     motion: Res<AccumulatedMouseMotion>,
     cursor_options: Single<&mut CursorOptions>,
-    mut transform: Single<&mut Transform, With<Camera3d>>,
+    mut transform: Single<&mut Transform, With<Player>>,
 ) {
     if !cursor_options.visible && cursor_options.grab_mode == CursorGrabMode::Locked {
         let delta = motion.delta;
@@ -258,7 +265,7 @@ fn mouse_move(
 fn ray_cast_system(
     _on: On<ModifyDensity>,
     mut ray_cast: MeshRayCast,
-    transform: Single<&Transform, With<Camera3d>>,
+    transform: Single<&Transform, With<Player>>,
     query: Query<&MeshMaterial3d<StandardMaterial>, With<Ball>>,
     mut commands: Commands,
 ) {
