@@ -21,7 +21,7 @@ const BEAM_HEIGHT: f32 = 0.25;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
-const PLAYER_COLOR: Color = Color::srgb(0.1, 0.1, 0.1);
+const PLAYER_COLOR: Color = Color::srgb(0.2, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
 const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
@@ -29,7 +29,7 @@ const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 11.0; // m/s
 
-const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
+const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
 
 #[derive(Component)]
 struct Resetable {
@@ -92,6 +92,7 @@ fn main() {
             Update,
             (mouse_move_yaw, mouse_move_pitch, button_input).chain(),
         )
+        .add_systems(Update, player_collision)
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .add_observer(toggle_camera)
@@ -111,9 +112,11 @@ fn setup(
             Player,
             RigidBody::Dynamic,
             Collider::capsule(PLAYER_RADIUS, PLAYER_HALF_HEIGHT),
+            CollidingEntities::default(),
             Mesh3d(meshes.add(Capsule3d::new(PLAYER_RADIUS, PLAYER_HALF_HEIGHT))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: PLAYER_COLOR,
+                alpha_mode: AlphaMode::Add,
                 ..default()
             })),
             LockedAxes::ROTATION_LOCKED,
@@ -140,47 +143,56 @@ fn setup(
         Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT * 0.5, 0.0),
     ));
 
-    // Static sphere the beam balances on
-    commands.spawn((
-        RigidBody::Static,
-        Collider::sphere(BALL_RADIUS),
-        Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: CENTER_BALL_COLOR,
-            ..default()
-        })),
-        Resetable::from_xyz(0.0, BALL_RADIUS, Z_OFFSET),
-    ));
+    for i in 0..4 {
+        let y_offset = 2.0 * i as f32;
+        let z_offset = Z_OFFSET * (i + 1) as f32;
 
-    // The balance beam
-    commands.spawn((
-        RigidBody::Dynamic,
-        Collider::cuboid(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH),
-        Mesh3d(meshes.add(Cuboid::new(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: BEAM_COLOR,
-            ..default()
-        })),
-        Resetable::from_xyz(0.0, BALL_RADIUS * 2.0 + BEAM_HEIGHT * 0.5, Z_OFFSET),
-    ));
-
-    // The dynamic spheres at each end of the balance beam
-    for sign in [-0.45, 0.45] {
+        // Static sphere the beam balances on
         commands.spawn((
-            Ball,
-            RigidBody::Dynamic,
+            RigidBody::Static,
             Collider::sphere(BALL_RADIUS),
             Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: BALL_COLOR,
+                base_color: CENTER_BALL_COLOR,
+                ..default()
+            })),
+            Resetable::from_xyz(0.0, y_offset + BALL_RADIUS, z_offset),
+        ));
+
+        // The balance beam
+        commands.spawn((
+            RigidBody::Dynamic,
+            Collider::cuboid(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH),
+            Mesh3d(meshes.add(Cuboid::new(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: BEAM_COLOR,
                 ..default()
             })),
             Resetable::from_xyz(
-                sign * BEAM_LENGTH,
-                BALL_RADIUS * 3.0 + BEAM_HEIGHT,
-                Z_OFFSET,
+                0.0,
+                y_offset + BALL_RADIUS * 2.0 + BEAM_HEIGHT * 0.5,
+                z_offset,
             ),
         ));
+
+        // The dynamic spheres at each end of the balance beam
+        for sign in [-0.45, 0.45] {
+            commands.spawn((
+                Ball,
+                RigidBody::Dynamic,
+                Collider::sphere(BALL_RADIUS),
+                Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    base_color: BALL_COLOR,
+                    ..default()
+                })),
+                Resetable::from_xyz(
+                    sign * BEAM_LENGTH,
+                    y_offset + BALL_RADIUS * 3.0 + BEAM_HEIGHT,
+                    z_offset,
+                ),
+            ));
+        }
     }
 
     commands.spawn((
@@ -192,6 +204,10 @@ fn setup(
         },
         Transform::from_xyz(5.0, 7.0, 5.0),
     ));
+}
+
+fn player_collision(colliding_entities: Single<&CollidingEntities, With<Player>>) {
+    println!("collision with {}", colliding_entities.len());
 }
 
 fn button_input(
