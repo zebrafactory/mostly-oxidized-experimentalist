@@ -83,7 +83,10 @@ fn main() {
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
         .add_systems(Startup, add_particle)
-        .add_systems(Update, (mouse_move, button_input).chain())
+        .add_systems(
+            Update,
+            (mouse_move_yaw, mouse_move_pitch, button_input).chain(),
+        )
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .add_observer(toggle_fullscreen)
@@ -217,10 +220,8 @@ fn button_input(
     }
     if input != Vec2::ZERO {
         let delta = input.normalize() * LINEAR_ACCELERATION * time.delta_secs();
-        let local_x = Vec2::new(transform.local_x().x, transform.local_x().z).normalize();
-        let local_z = Vec2::new(transform.local_z().x, transform.local_z().z).normalize();
-        let delta = (local_x * delta.x) + (local_z * delta.y);
-        linear_velocity.0 += Vec3::new(delta.x, 0.0, delta.y);
+        let delta = (transform.local_x() * delta.x) + (transform.local_z() * delta.y);
+        linear_velocity.0 += Vec3::new(delta.x, 0.0, delta.z);
     }
 
     if keyboard.just_pressed(KeyCode::Escape) {
@@ -244,18 +245,32 @@ fn button_input(
     }
 }
 
-fn mouse_move(
+fn mouse_move_yaw(
     motion: Res<AccumulatedMouseMotion>,
     cursor_options: Single<&mut CursorOptions>,
     mut transform: Single<&mut Transform, With<Player>>,
 ) {
     if !cursor_options.visible && cursor_options.grab_mode == CursorGrabMode::Locked {
         let delta = motion.delta;
-        if delta.x != 0.0 || delta.y != 0.0 {
+        if delta.x != 0.0 {
             let delta_yaw = -delta.x * 0.003;
-            let delta_pitch = -delta.y * 0.002;
             let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
             let yaw = yaw + delta_yaw;
+            transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+        }
+    }
+}
+
+fn mouse_move_pitch(
+    motion: Res<AccumulatedMouseMotion>,
+    cursor_options: Single<&mut CursorOptions>,
+    mut transform: Single<&mut Transform, With<Camera3d>>,
+) {
+    if !cursor_options.visible && cursor_options.grab_mode == CursorGrabMode::Locked {
+        let delta = motion.delta;
+        if delta.y != 0.0 {
+            let delta_pitch = -delta.y * 0.002;
+            let (yaw, pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
             let pitch = (pitch + delta_pitch).clamp(-PITCH_LIMIT, PITCH_LIMIT);
             transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
         }
