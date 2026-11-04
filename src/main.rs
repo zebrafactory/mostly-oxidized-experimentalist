@@ -191,7 +191,7 @@ fn setup(
                 Ball,
                 RigidBody::Dynamic,
                 Collider::sphere(BALL_RADIUS),
-                ColliderDensity(10.0),
+                GravityScale(1.0),
                 Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
                 MeshMaterial3d(materials.add(StandardMaterial {
                     base_color: BALL_COLOR,
@@ -317,7 +317,7 @@ fn ray_cast_system(
     _on: On<ModifyDensity>,
     mut ray_cast: MeshRayCast,
     transform: Single<&GlobalTransform, With<PlayerHead>>,
-    mut query: Query<&mut ColliderDensity, With<Ball>>,
+    mut query: Query<&mut GravityScale, With<Ball>>,
     mut commands: Commands,
 ) {
     let ray = Ray3d::new(transform.translation(), transform.forward());
@@ -327,9 +327,11 @@ fn ray_cast_system(
         .with_filter(&filter)
         .with_early_exit_test(&early_exit_test);
     for (entity, _hit) in ray_cast.cast_ray(ray, &settings) {
-        if let Ok(mut collider_density) = query.get_mut(*entity) {
-            println!("hit {collider_density:?}");
-            collider_density.0 = 50.0; // FIXME: Avian isn't recomputing mass
+        if let Ok(mut gravity_scale) = query.get_mut(*entity) {
+            // Changing ColliderDensity should wourk too in theory, but doesn't,
+            // so use GravityScale.
+            println!("hit {gravity_scale:?}");
+            gravity_scale.0 = 10.0;
             //commands.entity(*entity).despawn();
         }
     }
