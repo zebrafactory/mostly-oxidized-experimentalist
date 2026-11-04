@@ -60,6 +60,9 @@ impl Resetable {
 }
 
 #[derive(Component)]
+struct Player;
+
+#[derive(Component)]
 struct Ball;
 
 #[derive(Event)]
@@ -94,14 +97,15 @@ fn setup(
 ) {
     // The Player (a camera in a collider)
     commands.spawn((
+        Player,
         RigidBody::Dynamic,
-        LockedAxes::ROTATION_LOCKED,
         Collider::sphere(PLAYER_RADIUS),
         Mesh3d(meshes.add(Sphere::new(PLAYER_RADIUS))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: PLAYER_COLOR,
             ..default()
         })),
+        LockedAxes::ROTATION_LOCKED,
         LinearDamping(2.0),
         GravityScale(2.0),
         Camera3d::default(),
@@ -185,19 +189,19 @@ fn button_input(
     let (transform, mut linear_velocity) = player.into_inner();
 
     let mut input = Vec2::ZERO;
-    if keyboard.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
+    if keyboard.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp, KeyCode::KeyO]) {
         // Forward
         input.y -= 1.0;
     }
-    if keyboard.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) {
+    if keyboard.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown, KeyCode::KeyL]) {
         // Backward
         input.y += 1.0;
     }
-    if keyboard.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
+    if keyboard.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft, KeyCode::KeyK]) {
         // Strafe Left
         input.x -= 1.0;
     }
-    if keyboard.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
+    if keyboard.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight, KeyCode::Semicolon]) {
         // Strafe Right
         input.x += 1.0;
     }
