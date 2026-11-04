@@ -182,16 +182,16 @@ fn button_input(
     mut cursor_options: Single<&mut CursorOptions>,
     mut commands: Commands,
 ) {
-    let mut input = Vec3::ZERO;
     let (transform, mut linear_velocity) = player.into_inner();
 
+    let mut input = Vec2::ZERO;
     if keyboard.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) {
         // Forward
-        input.z -= 1.0;
+        input.y -= 1.0;
     }
     if keyboard.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) {
         // Backward
-        input.z += 1.0;
+        input.y += 1.0;
     }
     if keyboard.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
         // Strafe Left
@@ -201,23 +201,14 @@ fn button_input(
         // Strafe Right
         input.x += 1.0;
     }
-    if keyboard.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
-        // Fly Down
-        input.y -= 1.0;
-    }
-    if keyboard.pressed(KeyCode::Space) {
-        // Fly Up
-        input.y += 1.0;
-    }
     if keyboard.just_pressed(KeyCode::Space) {
         linear_velocity.y = JUMP_IMPULSE;
     }
-
-    if input != Vec3::ZERO {
-        let delta = input * LINEAR_ACCELERATION * time.delta_secs();
+    if input != Vec2::ZERO {
+        let delta = input.normalize() * LINEAR_ACCELERATION * time.delta_secs();
         let local_x = Vec2::new(transform.local_x().x, transform.local_x().z).normalize();
         let local_z = Vec2::new(transform.local_z().x, transform.local_z().z).normalize();
-        let delta = (local_x * delta.x) + (local_z * delta.z);
+        let delta = (local_x * delta.x) + (local_z * delta.y);
         linear_velocity.0 += Vec3::new(delta.x, 0.0, delta.y);
     }
 
