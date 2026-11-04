@@ -29,7 +29,7 @@ const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 11.0; // m/s
 
-const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
+const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
 
 #[derive(Component)]
 struct Resetable {
@@ -124,7 +124,7 @@ fn setup(
         .with_children(|parent| {
             parent.spawn((
                 Camera3d::default(),
-                Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, 0.0),
+                Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, CAMERA_3D_PERSON_DISTANCE),
             ));
         });
 
