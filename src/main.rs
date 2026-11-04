@@ -29,6 +29,8 @@ const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 11.0; // m/s
 
+const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
+
 #[derive(Component)]
 struct Resetable {
     translation: Vec3,
@@ -73,6 +75,9 @@ struct ResetWorld;
 struct ModifyDensity;
 
 #[derive(Event)]
+struct ToggleCamera;
+
+#[derive(Event)]
 struct ToggleFullscreen;
 
 #[derive(Event)]
@@ -89,6 +94,7 @@ fn main() {
         )
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
+        .add_observer(toggle_camera)
         .add_observer(toggle_fullscreen)
         .add_observer(un_fullscreen)
         .run();
@@ -118,7 +124,7 @@ fn setup(
         .with_children(|parent| {
             parent.spawn((
                 Camera3d::default(),
-                Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, 4.0),
+                Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, 0.0),
             ));
         });
 
@@ -131,7 +137,7 @@ fn setup(
             base_color: FLOOR_COLOR,
             ..default()
         })),
-        Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT / 2.0, 0.0),
+        Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT * 0.5, 0.0),
     ));
 
     // Static sphere the beam balances on
@@ -240,6 +246,9 @@ fn button_input(
     if keyboard.just_pressed(KeyCode::KeyR) {
         commands.trigger(ResetWorld);
     }
+    if keyboard.just_pressed(KeyCode::F5) {
+        commands.trigger(ToggleCamera)
+    }
     if keyboard.just_pressed(KeyCode::F11) {
         commands.trigger(ToggleFullscreen)
     }
@@ -309,6 +318,14 @@ fn reset_world(
         linear_velocity.0 = Vec3::ZERO;
         angular_velocity.0 = Vec3::ZERO;
     }
+}
+
+fn toggle_camera(_on: On<ToggleCamera>, mut transform: Single<&mut Transform, With<Camera3d>>) {
+    println!("toggle camera");
+    transform.translation.z = match transform.translation.z {
+        0.0 => CAMERA_3D_PERSON_DISTANCE,
+        _ => 0.0,
+    };
 }
 
 fn toggle_fullscreen(
