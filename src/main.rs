@@ -191,6 +191,7 @@ fn setup(
                 Ball,
                 RigidBody::Dynamic,
                 Collider::sphere(BALL_RADIUS),
+                ColliderDensity(10.0),
                 Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
                 MeshMaterial3d(materials.add(StandardMaterial {
                     base_color: BALL_COLOR,
@@ -217,7 +218,7 @@ fn setup(
 }
 
 fn player_collision(colliding_entities: Single<&CollidingEntities, With<Player>>) {
-    println!("collision with {}", colliding_entities.len());
+    //println!("collision with {}", colliding_entities.len());
 }
 
 fn button_input(
@@ -316,7 +317,7 @@ fn ray_cast_system(
     _on: On<ModifyDensity>,
     mut ray_cast: MeshRayCast,
     transform: Single<&GlobalTransform, With<PlayerHead>>,
-    query: Query<&MeshMaterial3d<StandardMaterial>, With<Ball>>,
+    mut query: Query<&mut ColliderDensity, With<Ball>>,
     mut commands: Commands,
 ) {
     let ray = Ray3d::new(transform.translation(), transform.forward());
@@ -326,7 +327,11 @@ fn ray_cast_system(
         .with_filter(&filter)
         .with_early_exit_test(&early_exit_test);
     for (entity, _hit) in ray_cast.cast_ray(ray, &settings) {
-        commands.entity(*entity).despawn();
+        if let Ok(mut collider_density) = query.get_mut(*entity) {
+            println!("hit {collider_density:?}");
+            collider_density.0 = 50.0; // FIXME: Avian isn't recomputing mass
+            //commands.entity(*entity).despawn();
+        }
     }
 }
 
