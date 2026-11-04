@@ -215,8 +215,10 @@ fn button_input(
 
     if input != Vec3::ZERO {
         let delta = input * LINEAR_ACCELERATION * time.delta_secs();
-        let delta = (transform.local_x() * delta.x) + (transform.local_z() * delta.z);
-        linear_velocity.0 += delta;
+        let local_x = Vec2::new(transform.local_x().x, transform.local_x().z).normalize();
+        let local_z = Vec2::new(transform.local_z().x, transform.local_z().z).normalize();
+        let delta = (local_x * delta.x) + (local_z * delta.z);
+        linear_velocity.0 += Vec3::new(delta.x, 0.0, delta.y);
     }
 
     if keyboard.just_pressed(KeyCode::Escape) {
