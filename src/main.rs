@@ -15,7 +15,7 @@ const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
 const BALL_RADIUS: f32 = 0.7;
-const Z_OFFSET: f32 = -6.0;
+const Z_OFFSET: f32 = -5.0;
 const BEAM_LENGTH: f32 = 6.0;
 const BEAM_HEIGHT: f32 = 0.25;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
@@ -66,6 +66,7 @@ impl Resetable {
 #[derive(Component)]
 struct Player {
     contacts: usize,
+    in_flight: bool,
 }
 
 #[derive(Component)]
@@ -126,7 +127,10 @@ fn setup(
     // The Player (a camera in a collider)
     commands
         .spawn((
-            Player { contacts: 0 },
+            Player {
+                contacts: 0,
+                in_flight: false,
+            },
             RigidBody::Dynamic,
             Collider::capsule(PLAYER_RADIUS, PLAYER_HALF_HEIGHT),
             CollidingEntities::default(),
@@ -137,9 +141,9 @@ fn setup(
                 ..default()
             })),
             LockedAxes::ROTATION_LOCKED,
-            LinearDamping(2.0),
+            LinearDamping(2.5),
             GravityScale(2.0),
-            Resetable::from_xyz(0.0, PLAYER_RADIUS * 10.0, 0.0),
+            Resetable::from_xyz(0.0, 1.8 + PLAYER_HALF_HEIGHT, 0.0),
         ))
         .with_children(|parent| {
             parent
@@ -168,7 +172,7 @@ fn setup(
     ));
 
     for i in 0..4 {
-        let y_offset = 2.0 * i as f32;
+        let y_offset = 1.5 * i as f32;
         let z_offset = Z_OFFSET * (i + 1) as f32;
 
         // Static sphere the beam balances on
@@ -260,14 +264,17 @@ fn setup(
 
 fn player_collision(mut commands: Commands, single: Single<(&CollidingEntities, &mut Player)>) {
     let (colliding_entities, mut player) = single.into_inner();
-    if player.contacts != colliding_entities.len() {
-        println!(
-            "previous: {}; now: {}",
-            player.contacts,
-            colliding_entities.len()
-        );
-        if colliding_entities.len() > player.contacts && player.contacts == 0 {
-            commands.trigger(PlayerLanded);
+    if colliding_entities.len() != player.contacts {
+        match colliding_entities.len() {
+            0 => {
+                player.in_flight = true;
+            }
+            _ => {
+                if player.in_flight {
+                    commands.trigger(PlayerLanded);
+                }
+                player.in_flight = false;
+            }
         }
         player.contacts = colliding_entities.len();
     }
@@ -277,11 +284,11 @@ fn button_input(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
-    player: Single<(&Transform, &mut LinearVelocity), With<Player>>,
+    single: Single<(&Player, &Transform, &mut LinearVelocity)>,
     mut cursor_options: Single<&mut CursorOptions>,
     mut commands: Commands,
 ) {
-    let (transform, mut linear_velocity) = player.into_inner();
+    let (player, transform, mut linear_velocity) = single.into_inner();
 
     let mut input = Vec2::ZERO;
     if keyboard.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp, KeyCode::KeyO]) {
@@ -301,7 +308,9 @@ fn button_input(
         input.x += 1.0;
     }
     if keyboard.just_pressed(KeyCode::Space) {
-        linear_velocity.y = JUMP_IMPULSE;
+        if !player.in_flight {
+            linear_velocity.y = JUMP_IMPULSE;
+        }
     }
     if input != Vec2::ZERO {
         let delta = input.normalize() * LINEAR_ACCELERATION * time.delta_secs();
