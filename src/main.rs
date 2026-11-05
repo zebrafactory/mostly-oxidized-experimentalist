@@ -15,7 +15,7 @@ const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
 const BALL_RADIUS: f32 = 0.7;
-const Z_OFFSET: f32 = -5.0;
+const Z_OFFSET: f32 = -4.5;
 const BEAM_LENGTH: f32 = 6.0;
 const BEAM_HEIGHT: f32 = 0.25;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
@@ -28,7 +28,7 @@ const HEAVY_BALL_COLOR: Color = Color::srgb(0.4, 0.4, 0.8);
 const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
-const JUMP_IMPULSE: f32 = 11.0; // m/s
+const JUMP_IMPULSE: f32 = 13.0; // m/s
 
 const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
 
@@ -145,7 +145,7 @@ fn setup(
             })),
             LockedAxes::ROTATION_LOCKED,
             LinearDamping(2.5),
-            GravityScale(2.0),
+            GravityScale(2.5),
             Resetable::from_xyz(0.0, 1.8 + PLAYER_HALF_HEIGHT, 0.0),
         ))
         .with_children(|parent| {
@@ -241,6 +241,33 @@ fn setup(
                 ..default()
             },
             Transform::from_xyz(-5.0, y_offset + 7.0, z_offset + 5.0),
+        ));
+    }
+
+    for i in 0..6 {
+        let y_offset = 1.5 * (i + 1) as f32;
+        let z_offset = Z_OFFSET * (i + 1) as f32;
+
+        // Static sphere the beam balances on
+        commands.spawn((
+            RigidBody::Static,
+            Collider::cylinder(BALL_RADIUS * 2.0, BALL_RADIUS),
+            Mesh3d(meshes.add(Cylinder::new(BALL_RADIUS * 2.0, BALL_RADIUS))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: CENTER_BALL_COLOR,
+                ..default()
+            })),
+            Resetable::from_xyz(0.0, y_offset + BALL_RADIUS, -z_offset),
+        ));
+
+        commands.spawn((
+            PointLight {
+                shadow_maps_enabled: true,
+                contact_shadows_enabled: true,
+                intensity: 333_000.0,
+                ..default()
+            },
+            Transform::from_xyz(-5.0, y_offset + 7.0, -z_offset + 5.0),
         ));
     }
 
