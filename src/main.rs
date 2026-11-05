@@ -216,6 +216,23 @@ fn setup(
         },
         Transform::from_xyz(5.0, 7.0, 5.0),
     ));
+
+    commands.spawn((
+        Node {
+            width: Val::Px(8.0),
+            height: Val::Px(8.0),
+            position_type: PositionType::Absolute,
+            left: Val::Percent(50.0),
+            top: Val::Percent(50.0),
+            margin: UiRect {
+                left: Val::Px(-4.0),
+                top: Val::Px(-4.0),
+                ..default()
+            },
+            ..default()
+        },
+        BackgroundColor(Color::WHITE),
+    ));
 }
 
 fn player_collision(colliding_entities: Single<&CollidingEntities, With<Player>>) {
