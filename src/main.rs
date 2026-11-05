@@ -1,6 +1,6 @@
 use avian3d::prelude::*;
 use bevy::{
-    input::mouse::AccumulatedMouseMotion,
+    input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
     prelude::*,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow, WindowMode},
 };
@@ -30,7 +30,7 @@ const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 11.0; // m/s
 
-const CAMERA_3D_PERSON_DISTANCE: f32 = 3.5;
+const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
 
 #[derive(Component)]
 struct Resetable {
@@ -94,7 +94,7 @@ fn main() {
         .add_systems(Startup, add_particle)
         .add_systems(
             Update,
-            (mouse_move_yaw, mouse_move_pitch, button_input).chain(),
+            (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
         )
         .add_systems(Update, player_collision)
         .add_observer(ray_cast_system)
@@ -236,7 +236,9 @@ fn setup(
 }
 
 fn player_collision(colliding_entities: Single<&CollidingEntities, With<Player>>) {
-    println!("collision with {}", colliding_entities.len());
+    if colliding_entities.len() != 1 {
+        println!("collision with {}", colliding_entities.len());
+    }
 }
 
 fn button_input(
@@ -313,6 +315,14 @@ fn mouse_move_yaw(
             transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
         }
     }
+}
+
+fn mouse_wheel(
+    scroll: Res<AccumulatedMouseScroll>,
+    mut transform: Single<&mut Transform, With<Camera3d>>,
+) {
+    transform.translation.z = (transform.translation.z - 0.5 * scroll.delta.y as f32)
+        .clamp(0.0, CAMERA_3D_PERSON_DISTANCE);
 }
 
 fn mouse_move_pitch(
