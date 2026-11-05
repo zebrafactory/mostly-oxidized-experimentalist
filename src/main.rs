@@ -73,7 +73,10 @@ struct Player {
 struct PlayerHead;
 
 #[derive(Component)]
-struct Ball;
+struct Ball {
+    contacts: usize,
+    in_flight: bool,
+}
 
 #[derive(Event)]
 struct ResetWorld;
@@ -105,7 +108,7 @@ fn main() {
             Update,
             (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
         )
-        .add_systems(Update, player_collision)
+        .add_systems(Update, (player_collision, ball_collision))
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .add_observer(toggle_camera)
@@ -150,6 +153,9 @@ fn setup(
                 .spawn((
                     PlayerHead,
                     Transform::from_xyz(0.0, PLAYER_HALF_HEIGHT * 0.5, 0.0),
+                    // Needed to fix:
+                    // WARN bevy_app::hierarchy: warning[B0004]: Entity 549v0 with the InheritedVisibility component has a parent (548v0 entity) without InheritedVisibility.
+                    InheritedVisibility::VISIBLE,
                 ))
                 .with_children(|sub_parent| {
                     sub_parent.spawn((
@@ -206,9 +212,13 @@ fn setup(
         // The dynamic spheres at each end of the balance beam
         for sign in [-0.45, 0.45] {
             commands.spawn((
-                Ball,
+                Ball {
+                    contacts: 0,
+                    in_flight: false,
+                },
                 RigidBody::Dynamic,
                 Collider::sphere(BALL_RADIUS),
+                CollidingEntities::default(),
                 GravityScale(1.0),
                 Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
                 MeshMaterial3d(materials.add(StandardMaterial {
@@ -277,6 +287,25 @@ fn player_collision(mut commands: Commands, single: Single<(&CollidingEntities, 
             }
         }
         player.contacts = colliding_entities.len();
+    }
+}
+
+fn ball_collision(mut commands: Commands, mut query: Query<(&CollidingEntities, &mut Ball)>) {
+    for (colliding_entities, mut ball) in &mut query {
+        if colliding_entities.len() != ball.contacts {
+            match colliding_entities.len() {
+                0 => {
+                    ball.in_flight = true;
+                }
+                _ => {
+                    if ball.in_flight {
+                        commands.trigger(PlayerLanded);
+                    }
+                    ball.in_flight = false;
+                }
+            }
+            ball.contacts = colliding_entities.len();
+        }
     }
 }
 
