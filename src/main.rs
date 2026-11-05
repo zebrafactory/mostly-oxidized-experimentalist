@@ -12,7 +12,7 @@ use crate::particle::*;
 const FLOOR_RADIUS: f32 = 100.0;
 const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
-const PLAYER_RADIUS: f32 = 0.4;
+const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
 const BALL_RADIUS: f32 = 0.7;
 const Z_OFFSET: f32 = -6.0;
@@ -30,7 +30,7 @@ const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 11.0; // m/s
 
-const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
+const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
 
 #[derive(Component)]
 struct Resetable {
@@ -205,6 +205,16 @@ fn setup(
                 ),
             ));
         }
+
+        commands.spawn((
+            PointLight {
+                shadow_maps_enabled: true,
+                contact_shadows_enabled: true,
+                intensity: 500_000.0,
+                ..default()
+            },
+            Transform::from_xyz(-5.0, y_offset + 7.0, z_offset + 5.0),
+        ));
     }
 
     commands.spawn((
@@ -214,7 +224,7 @@ fn setup(
             intensity: 777_000.0,
             ..default()
         },
-        Transform::from_xyz(5.0, 7.0, 5.0),
+        Transform::from_xyz(6.0, 7.0, 5.0),
     ));
 
     commands.spawn((
@@ -321,7 +331,7 @@ fn mouse_wheel(
     scroll: Res<AccumulatedMouseScroll>,
     mut transform: Single<&mut Transform, With<Camera3d>>,
 ) {
-    transform.translation.z = (transform.translation.z - 0.5 * scroll.delta.y as f32)
+    transform.translation.z = (transform.translation.z - 1.0 * scroll.delta.y as f32)
         .clamp(0.0, CAMERA_3D_PERSON_DISTANCE);
 }
 
