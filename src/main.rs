@@ -64,7 +64,9 @@ impl Resetable {
 }
 
 #[derive(Component)]
-struct Player;
+struct Player {
+    contacts: usize,
+}
 
 #[derive(Component)]
 struct PlayerHead;
@@ -87,6 +89,12 @@ struct ToggleFullscreen;
 #[derive(Event)]
 struct UnFullscreen;
 
+#[derive(Event)]
+struct PlayerLanded;
+
+#[derive(Resource, Deref)]
+struct LandingSound(Handle<AudioSource>);
+
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
@@ -102,6 +110,7 @@ fn main() {
         .add_observer(toggle_camera)
         .add_observer(toggle_fullscreen)
         .add_observer(un_fullscreen)
+        .add_observer(play_landing_sound)
         .run();
 }
 
@@ -109,11 +118,15 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
+    let sound = asset_server.load("breakout_collision.ogg");
+    commands.insert_resource(LandingSound(sound));
+
     // The Player (a camera in a collider)
     commands
         .spawn((
-            Player,
+            Player { contacts: 0 },
             RigidBody::Dynamic,
             Collider::capsule(PLAYER_RADIUS, PLAYER_HALF_HEIGHT),
             CollidingEntities::default(),
@@ -126,7 +139,7 @@ fn setup(
             LockedAxes::ROTATION_LOCKED,
             LinearDamping(2.0),
             GravityScale(2.0),
-            Resetable::from_xyz(0.0, PLAYER_RADIUS * 8.0, 0.0),
+            Resetable::from_xyz(0.0, PLAYER_RADIUS * 10.0, 0.0),
         ))
         .with_children(|parent| {
             parent
@@ -245,9 +258,18 @@ fn setup(
     ));
 }
 
-fn player_collision(colliding_entities: Single<&CollidingEntities, With<Player>>) {
-    if colliding_entities.len() != 1 {
-        println!("collision with {}", colliding_entities.len());
+fn player_collision(mut commands: Commands, single: Single<(&CollidingEntities, &mut Player)>) {
+    let (colliding_entities, mut player) = single.into_inner();
+    if player.contacts != colliding_entities.len() {
+        println!(
+            "previous: {}; now: {}",
+            player.contacts,
+            colliding_entities.len()
+        );
+        if colliding_entities.len() > player.contacts && player.contacts == 0 {
+            commands.trigger(PlayerLanded);
+        }
+        player.contacts = colliding_entities.len();
     }
 }
 
@@ -422,4 +444,8 @@ fn toggle_fullscreen(
 
 fn un_fullscreen(_on: On<UnFullscreen>, mut window: Single<&mut Window, With<PrimaryWindow>>) {
     window.mode = WindowMode::Windowed;
+}
+
+fn play_landing_sound(_on: On<PlayerLanded>, mut commands: Commands, sound: Res<LandingSound>) {
+    commands.spawn((AudioPlayer(sound.clone()), PlaybackSettings::DESPAWN));
 }
