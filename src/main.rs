@@ -182,6 +182,7 @@ fn setup(
         let z_offset = Z_OFFSET * (i + 1) as f32;
 
         // Static sphere the beam balances on
+        /*
         commands.spawn((
             RigidBody::Static,
             Collider::sphere(BALL_RADIUS),
@@ -192,10 +193,13 @@ fn setup(
             })),
             Resetable::from_xyz(0.0, y_offset + BALL_RADIUS, z_offset),
         ));
+        */
 
         // The balance beam
         commands.spawn((
             RigidBody::Dynamic,
+            LockedAxes::ALL_LOCKED.unlock_rotation_z(),
+            AngularDamping(1.05),
             Collider::cuboid(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH),
             Mesh3d(meshes.add(Cuboid::new(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH))),
             MeshMaterial3d(materials.add(StandardMaterial {
