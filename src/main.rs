@@ -12,7 +12,7 @@ use crate::particle::*;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
-const BALL_RADIUS: f32 = 0.7;
+const BALL_RADIUS: f32 = 1.5;
 const Z_OFFSET: f32 = -4.5;
 const BEAM_LENGTH: f32 = 6.0;
 const BEAM_HEIGHT: f32 = 0.25;
@@ -33,6 +33,7 @@ const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
 
 const ROOM: Vec3 = Vec3::new(20.0, 4.0, 30.0);
 const WALL: f32 = 0.5;
+const GAP: f32 = 0.001;
 
 #[derive(Component)]
 struct Resetable {
@@ -167,7 +168,7 @@ fn setup(
                 });
         });
 
-    // Static floor
+    // Floor and 3 walls
     commands.spawn((
         RigidBody::Static,
         Collider::cuboid(ROOM.x, WALL, ROOM.z),
@@ -178,19 +179,17 @@ fn setup(
         })),
         Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, 0.0),
     ));
-
-    // Static walls
+    commands.spawn((
+        RigidBody::Static,
+        Collider::cuboid(ROOM.x, ROOM.y, WALL),
+        Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, WALL))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: WALL_COLOR,
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 0.0, (ROOM.z + WALL) * 0.5),
+    ));
     for sign in [-1.0, 1.0] {
-        commands.spawn((
-            RigidBody::Static,
-            Collider::cuboid(ROOM.x, ROOM.y, WALL),
-            Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, WALL))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: WALL_COLOR,
-                ..default()
-            })),
-            Transform::from_xyz(0.0, 0.0, (ROOM.z + WALL) * 0.5 * sign),
-        ));
         commands.spawn((
             RigidBody::Static,
             Collider::cuboid(WALL, ROOM.y, ROOM.z),
@@ -203,60 +202,69 @@ fn setup(
         ));
     }
 
-    for i in 0..4 {
-        let y_offset = -1.5 + 1.5 * i as f32;
-        let z_offset = Z_OFFSET * (i + 1) as f32;
+    commands.spawn((
+        RigidBody::Dynamic,
+        LockedAxes::ALL_LOCKED.unlock_rotation_z(),
+        Collider::cuboid(ROOM.x, ROOM.y, BEAM_WIDTH),
+        Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, BEAM_WIDTH))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: BEAM_COLOR,
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 0.0, (ROOM.z + BEAM_WIDTH) * -0.5 - GAP),
+    ));
 
-        // The balance beam
+    for sign in [-1.0, 1.0] {
         commands.spawn((
+            Ball {
+                contacts: 0,
+                in_flight: false,
+            },
             RigidBody::Dynamic,
-            LockedAxes::ALL_LOCKED.unlock_rotation_z(),
-            AngularDamping(1.05),
-            Collider::cuboid(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH),
-            Mesh3d(meshes.add(Cuboid::new(BEAM_LENGTH, BEAM_HEIGHT, BEAM_WIDTH))),
+            Collider::sphere(BALL_RADIUS),
+            CollidingEntities::default(),
+            GravityScale(1.0),
+            Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: BEAM_COLOR,
+                base_color: BALL_COLOR,
                 ..default()
             })),
             Resetable::from_xyz(
-                0.0,
-                y_offset + BALL_RADIUS * 2.0 + BEAM_HEIGHT * 0.5,
-                z_offset,
+                sign * (ROOM.x - BEAM_WIDTH) * 0.5,
+                10.0,
+                (ROOM.z + BEAM_WIDTH) * -0.5,
             ),
         ));
+    }
 
-        // The dynamic spheres at each end of the balance beam
-        for sign in [-0.45, 0.45] {
-            commands.spawn((
-                Ball {
-                    contacts: 0,
-                    in_flight: false,
-                },
-                RigidBody::Dynamic,
-                Collider::sphere(BALL_RADIUS),
-                CollidingEntities::default(),
-                GravityScale(1.0),
-                Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
-                MeshMaterial3d(materials.add(StandardMaterial {
-                    base_color: BALL_COLOR,
-                    ..default()
-                })),
-                Resetable::from_xyz(
-                    sign * BEAM_LENGTH,
-                    y_offset + BALL_RADIUS * 3.0 + BEAM_HEIGHT,
-                    z_offset,
-                ),
-            ));
-        }
-
+    commands.spawn((
+        RigidBody::Static,
+        Collider::cuboid(ROOM.x, WALL, ROOM.z),
+        Mesh3d(meshes.add(Cuboid::new(ROOM.x, WALL, ROOM.z))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: FLOOR_COLOR,
+            ..default()
+        })),
+        Transform::from_xyz(
+            0.0,
+            (ROOM.y + WALL) * -0.5,
+            -(ROOM.z + BEAM_WIDTH + GAP * 2.0),
+        ),
+    ));
+    for sign in [-1.0, 1.0] {
         commands.spawn((
-            PointLight {
-                shadow_maps_enabled: true,
-                contact_shadows_enabled: true,
-                intensity: 500_000.0,
+            RigidBody::Static,
+            Collider::cuboid(WALL, ROOM.y, ROOM.z),
+            Mesh3d(meshes.add(Cuboid::new(WALL, ROOM.y, ROOM.z))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: WALL_COLOR,
                 ..default()
-            },
-            Transform::from_xyz(-5.0, y_offset + 7.0, z_offset + 5.0),
+            })),
+            Transform::from_xyz(
+                (ROOM.x + WALL) * 0.5 * sign,
+                0.0,
+                -(ROOM.z + BEAM_WIDTH + GAP * 2.0),
+            ),
         ));
     }
 
@@ -267,7 +275,7 @@ fn setup(
             intensity: 777_000.0,
             ..default()
         },
-        Transform::from_xyz(6.0, 7.0, 5.0),
+        Transform::from_xyz(6.0, 7.0, -6.0),
     ));
 
     // Crosshairs for pointing your Alchemy
