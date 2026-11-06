@@ -9,8 +9,6 @@ use std::f32::consts::FRAC_PI_2;
 mod particle;
 use crate::particle::*;
 
-const FLOOR_RADIUS: f32 = 100.0;
-const FLOOR_HALF_HEIGHT: f32 = 0.5;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
@@ -21,16 +19,20 @@ const BEAM_HEIGHT: f32 = 0.25;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
+const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
+
 const PLAYER_COLOR: Color = Color::srgb(0.2, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
 const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 const HEAVY_BALL_COLOR: Color = Color::srgb(0.4, 0.4, 0.8);
-const CENTER_BALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
-const JUMP_IMPULSE: f32 = 13.0; // m/s
+const JUMP_IMPULSE: f32 = 17.0; // m/s
 
 const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
+
+const ROOM: Vec3 = Vec3::new(20.0, 4.0, 30.0);
+const WALL: f32 = 0.5;
 
 #[derive(Component)]
 struct Resetable {
@@ -168,17 +170,41 @@ fn setup(
     // Static floor
     commands.spawn((
         RigidBody::Static,
-        Collider::cylinder(FLOOR_RADIUS, FLOOR_HALF_HEIGHT),
-        Mesh3d(meshes.add(Cylinder::new(FLOOR_RADIUS, FLOOR_HALF_HEIGHT))),
+        Collider::cuboid(ROOM.x, WALL, ROOM.z),
+        Mesh3d(meshes.add(Cuboid::new(ROOM.x, WALL, ROOM.z))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: FLOOR_COLOR,
             ..default()
         })),
-        Transform::from_xyz(0.0, -FLOOR_HALF_HEIGHT * 0.5, 0.0),
+        Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, 0.0),
     ));
 
+    // Static walls
+    for sign in [-1.0, 1.0] {
+        commands.spawn((
+            RigidBody::Static,
+            Collider::cuboid(ROOM.x, ROOM.y, WALL),
+            Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, WALL))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: WALL_COLOR,
+                ..default()
+            })),
+            Transform::from_xyz(0.0, 0.0, (ROOM.z + WALL) * 0.5 * sign),
+        ));
+        commands.spawn((
+            RigidBody::Static,
+            Collider::cuboid(WALL, ROOM.y, ROOM.z),
+            Mesh3d(meshes.add(Cuboid::new(WALL, ROOM.y, ROOM.z))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: WALL_COLOR,
+                ..default()
+            })),
+            Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, 0.0),
+        ));
+    }
+
     for i in 0..4 {
-        let y_offset = 1.5 * i as f32;
+        let y_offset = -1.5 + 1.5 * i as f32;
         let z_offset = Z_OFFSET * (i + 1) as f32;
 
         // The balance beam
