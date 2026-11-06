@@ -103,7 +103,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
-        .add_systems(Startup, add_particle)
+        //.add_systems(Startup, add_particle)
         .add_systems(
             Update,
             (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
@@ -146,7 +146,7 @@ fn setup(
             LockedAxes::ROTATION_LOCKED,
             LinearDamping(2.5),
             GravityScale(2.5),
-            Resetable::from_xyz(0.0, 1.8 + PLAYER_HALF_HEIGHT, 0.0),
+            Resetable::from_xyz(0.0, 0.0, 0.0),
         ))
         .with_children(|parent| {
             parent
@@ -180,20 +180,6 @@ fn setup(
     for i in 0..4 {
         let y_offset = 1.5 * i as f32;
         let z_offset = Z_OFFSET * (i + 1) as f32;
-
-        // Static sphere the beam balances on
-        /*
-        commands.spawn((
-            RigidBody::Static,
-            Collider::sphere(BALL_RADIUS),
-            Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: CENTER_BALL_COLOR,
-                ..default()
-            })),
-            Resetable::from_xyz(0.0, y_offset + BALL_RADIUS, z_offset),
-        ));
-        */
 
         // The balance beam
         commands.spawn((
@@ -248,37 +234,6 @@ fn setup(
         ));
     }
 
-    for i in 0..6 {
-        let y_offset = 1.5 * (i + 1) as f32;
-        let z_offset = Z_OFFSET * (i + 1) as f32;
-
-        // Static sphere the beam balances on
-        commands.spawn((
-            RigidBody::Static,
-            Collider::cylinder(BALL_RADIUS * 2.0, BALL_RADIUS),
-            Mesh3d(meshes.add(Cylinder::new(BALL_RADIUS * 2.0, BALL_RADIUS))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: CENTER_BALL_COLOR,
-                ..default()
-            })),
-            Resetable::from_xyz(0.0, y_offset + BALL_RADIUS, -z_offset),
-        ));
-
-        /*
-        To many point lights causes a rending error on wasm32 (Firefox): a wierd
-        flickering box artifact at the bottom of the screen.
-        commands.spawn((
-            PointLight {
-                shadow_maps_enabled: true,
-                contact_shadows_enabled: true,
-                intensity: 333_000.0,
-                ..default()
-            },
-            Transform::from_xyz(-5.0, y_offset + 7.0, -z_offset + 5.0),
-        ));
-        */
-    }
-
     commands.spawn((
         PointLight {
             shadow_maps_enabled: true,
@@ -289,6 +244,7 @@ fn setup(
         Transform::from_xyz(6.0, 7.0, 5.0),
     ));
 
+    // Crosshairs for pointing your Alchemy
     commands.spawn((
         Node {
             width: Val::Px(8.0),
@@ -455,7 +411,7 @@ fn ray_cast_system(
 ) {
     let ray = Ray3d::new(transform.translation(), transform.forward());
     let filter = |entity| query.contains(entity);
-    let early_exit_test = |_entity| false;
+    let early_exit_test = |_entity| true;
     let settings = MeshRayCastSettings::default()
         .with_filter(&filter)
         .with_early_exit_test(&early_exit_test);
