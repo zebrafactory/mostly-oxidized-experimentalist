@@ -260,6 +260,9 @@ fn setup(
             Resetable::from_xyz(0.0, y_offset + BALL_RADIUS, -z_offset),
         ));
 
+        /*
+        To many point lights causes a rending error on wasm32 (Firefox): a wierd
+        flickering box artifact at the bottom of the screen.
         commands.spawn((
             PointLight {
                 shadow_maps_enabled: true,
@@ -269,6 +272,7 @@ fn setup(
             },
             Transform::from_xyz(-5.0, y_offset + 7.0, -z_offset + 5.0),
         ));
+        */
     }
 
     commands.spawn((
