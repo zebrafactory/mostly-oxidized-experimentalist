@@ -13,10 +13,8 @@ const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
 const BALL_RADIUS: f32 = 1.5;
-const Z_OFFSET: f32 = -4.5;
-const BEAM_LENGTH: f32 = 6.0;
-const BEAM_HEIGHT: f32 = 0.25;
-const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0;
+const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + 0.01;
+const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - 0.01);
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
@@ -33,7 +31,6 @@ const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
 
 const ROOM: Vec3 = Vec3::new(20.0, 4.0, 30.0);
 const WALL: f32 = 0.5;
-const GAP: f32 = 0.001;
 
 #[derive(Component)]
 struct Resetable {
@@ -202,16 +199,17 @@ fn setup(
         ));
     }
 
+    // The sea-saw beam
     commands.spawn((
         RigidBody::Dynamic,
         LockedAxes::ALL_LOCKED.unlock_rotation_z(),
-        Collider::cuboid(ROOM.x, ROOM.y, BEAM_WIDTH),
-        Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, BEAM_WIDTH))),
+        Collider::cuboid(BEAM.x, BEAM.y, BEAM.z),
+        Mesh3d(meshes.add(Cuboid::new(BEAM.x, BEAM.y, BEAM.z))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: BEAM_COLOR,
             ..default()
         })),
-        Transform::from_xyz(0.0, 0.0, (ROOM.z + BEAM_WIDTH) * -0.5 - GAP),
+        Resetable::from_xyz(0.0, 0.0, (ROOM.z + BEAM_WIDTH) * -0.5),
     ));
 
     for sign in [-1.0, 1.0] {
@@ -245,11 +243,7 @@ fn setup(
             base_color: FLOOR_COLOR,
             ..default()
         })),
-        Transform::from_xyz(
-            0.0,
-            (ROOM.y + WALL) * -0.5,
-            -(ROOM.z + BEAM_WIDTH + GAP * 2.0),
-        ),
+        Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, -(ROOM.z + BEAM_WIDTH)),
     ));
     for sign in [-1.0, 1.0] {
         commands.spawn((
@@ -260,14 +254,11 @@ fn setup(
                 base_color: WALL_COLOR,
                 ..default()
             })),
-            Transform::from_xyz(
-                (ROOM.x + WALL) * 0.5 * sign,
-                0.0,
-                -(ROOM.z + BEAM_WIDTH + GAP * 2.0),
-            ),
+            Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, -(ROOM.z + BEAM_WIDTH)),
         ));
     }
 
+    // A light
     commands.spawn((
         PointLight {
             shadow_maps_enabled: true,
@@ -412,14 +403,6 @@ fn mouse_move_yaw(
     }
 }
 
-fn mouse_wheel(
-    scroll: Res<AccumulatedMouseScroll>,
-    mut transform: Single<&mut Transform, With<Camera3d>>,
-) {
-    transform.translation.z = (transform.translation.z - 1.0 * scroll.delta.y as f32)
-        .clamp(0.0, CAMERA_3D_PERSON_DISTANCE);
-}
-
 fn mouse_move_pitch(
     motion: Res<AccumulatedMouseMotion>,
     cursor_options: Single<&mut CursorOptions>,
@@ -434,6 +417,14 @@ fn mouse_move_pitch(
             transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
         }
     }
+}
+
+fn mouse_wheel(
+    scroll: Res<AccumulatedMouseScroll>,
+    mut transform: Single<&mut Transform, With<Camera3d>>,
+) {
+    transform.translation.z = (transform.translation.z - 1.0 * scroll.delta.y as f32)
+        .clamp(0.0, CAMERA_3D_PERSON_DISTANCE);
 }
 
 fn ray_cast_system(
