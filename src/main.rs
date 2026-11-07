@@ -13,8 +13,8 @@ const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
 const BALL_RADIUS: f32 = 1.5;
-const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + 0.01;
-const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - 0.01);
+const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + 0.1;
+const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - 0.1);
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
