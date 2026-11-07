@@ -13,8 +13,9 @@ const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
 const BALL_RADIUS: f32 = 1.5;
-const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + 0.1;
-const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - 0.1);
+const GAP: f32 = 0.1;
+const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + GAP;
+const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - GAP);
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
@@ -166,109 +167,79 @@ fn setup(
                 });
         });
 
-    // Floor and 3 walls
-    commands.spawn((
-        RigidBody::Static,
-        Collider::cuboid(ROOM.x, WALL, ROOM.z),
-        Mesh3d(meshes.add(Cuboid::new(ROOM.x, WALL, ROOM.z))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: FLOOR_COLOR,
-            ..default()
-        })),
-        Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, 0.0),
-    ));
-    commands.spawn((
-        RigidBody::Static,
-        Collider::cuboid(ROOM.x, ROOM.y, WALL),
-        Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, WALL))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: WALL_COLOR,
-            ..default()
-        })),
-        Transform::from_xyz(0.0, 0.0, (ROOM.z + WALL) * 0.5),
-    ));
-    for sign in [-1.0, 1.0] {
+    // Floor and side walls
+    for i in 0..8 {
+        let z_offset = -(ROOM.z + BEAM_WIDTH) * i as f32;
         commands.spawn((
             RigidBody::Static,
-            Collider::cuboid(WALL, ROOM.y, ROOM.z),
-            Mesh3d(meshes.add(Cuboid::new(WALL, ROOM.y, ROOM.z))),
+            Collider::cuboid(ROOM.x, WALL, ROOM.z),
+            Mesh3d(meshes.add(Cuboid::new(ROOM.x, WALL, ROOM.z))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: WALL_COLOR,
+                base_color: FLOOR_COLOR,
                 ..default()
             })),
-            Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, 0.0),
+            Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, z_offset),
         ));
-    }
+        for sign in [-1.0, 1.0] {
+            commands.spawn((
+                RigidBody::Static,
+                Collider::cuboid(WALL, ROOM.y, ROOM.z),
+                Mesh3d(meshes.add(Cuboid::new(WALL, ROOM.y, ROOM.z))),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    base_color: WALL_COLOR,
+                    ..default()
+                })),
+                Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, z_offset),
+            ));
+        }
 
-    // The sea-saw beam
-    commands.spawn((
-        RigidBody::Dynamic,
-        LockedAxes::ALL_LOCKED.unlock_rotation_z(),
-        Collider::cuboid(BEAM.x, BEAM.y, BEAM.z),
-        Mesh3d(meshes.add(Cuboid::new(BEAM.x, BEAM.y, BEAM.z))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: BEAM_COLOR,
-            ..default()
-        })),
-        Resetable::from_xyz(0.0, 0.0, (ROOM.z + BEAM_WIDTH) * -0.5),
-    ));
-
-    for sign in [-1.0, 1.0] {
+        // The sea-saw beam
         commands.spawn((
-            Ball {
-                contacts: 0,
-                in_flight: false,
-            },
             RigidBody::Dynamic,
-            Collider::sphere(BALL_RADIUS),
-            CollidingEntities::default(),
-            GravityScale(1.0),
-            Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
+            LockedAxes::ALL_LOCKED.unlock_rotation_z(),
+            Collider::cuboid(BEAM.x, BEAM.y, BEAM.z),
+            Mesh3d(meshes.add(Cuboid::new(BEAM.x, BEAM.y, BEAM.z))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: BALL_COLOR,
+                base_color: BEAM_COLOR,
                 ..default()
             })),
-            Resetable::from_xyz(
-                sign * (ROOM.x - BEAM_WIDTH) * 0.5,
-                10.0,
-                (ROOM.z + BEAM_WIDTH) * -0.5,
-            ),
+            Resetable::from_xyz(0.0, 0.0, z_offset + (ROOM.z + BEAM_WIDTH) * -0.5),
         ));
-    }
+        // Balls on sea-saw
+        for sign in [-1.0, 1.0] {
+            commands.spawn((
+                Ball {
+                    contacts: 0,
+                    in_flight: false,
+                },
+                RigidBody::Dynamic,
+                Collider::sphere(BALL_RADIUS),
+                CollidingEntities::default(),
+                GravityScale(1.0),
+                Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    base_color: BALL_COLOR,
+                    ..default()
+                })),
+                Resetable::from_xyz(
+                    sign * (ROOM.x - BEAM_WIDTH) * 0.5,
+                    10.0,
+                    z_offset + (ROOM.z + BEAM_WIDTH) * -0.5,
+                ),
+            ));
+        }
 
-    commands.spawn((
-        RigidBody::Static,
-        Collider::cuboid(ROOM.x, WALL, ROOM.z),
-        Mesh3d(meshes.add(Cuboid::new(ROOM.x, WALL, ROOM.z))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: FLOOR_COLOR,
-            ..default()
-        })),
-        Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, -(ROOM.z + BEAM_WIDTH)),
-    ));
-    for sign in [-1.0, 1.0] {
+        // A light
         commands.spawn((
-            RigidBody::Static,
-            Collider::cuboid(WALL, ROOM.y, ROOM.z),
-            Mesh3d(meshes.add(Cuboid::new(WALL, ROOM.y, ROOM.z))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: WALL_COLOR,
+            PointLight {
+                shadow_maps_enabled: true,
+                //contact_shadows_enabled: true,
+                intensity: 999_000.0,
                 ..default()
-            })),
-            Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, -(ROOM.z + BEAM_WIDTH)),
+            },
+            Transform::from_xyz(6.0, 9.0, z_offset - 6.0),
         ));
     }
-
-    // A light
-    commands.spawn((
-        PointLight {
-            shadow_maps_enabled: true,
-            contact_shadows_enabled: true,
-            intensity: 777_000.0,
-            ..default()
-        },
-        Transform::from_xyz(6.0, 7.0, -6.0),
-    ));
 
     // Crosshairs for pointing your Alchemy
     commands.spawn((
