@@ -27,7 +27,7 @@ const HEAVY_BALL_COLOR: Color = Color::srgb(0.4, 0.4, 0.8);
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 17.0; // m/s
 
-const CAMERA_3D_PERSON_DISTANCE: f32 = 5.0;
+const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
 
 const ROOM: Vec3 = Vec3::new(20.0, 4.0, 30.0);
 const WALL: f32 = 0.5;
@@ -111,6 +111,7 @@ fn main() {
         .add_systems(Update, (player_collision, ball_collision))
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
+        .add_observer(reset_balls)
         .add_observer(toggle_camera)
         .add_observer(toggle_fullscreen)
         .add_observer(un_fullscreen)
@@ -445,7 +446,7 @@ fn ray_cast_system(
             // Changing ColliderDensity should wourk too in theory, but doesn't,
             // so use GravityScale.
             println!("hit {gravity_scale:?}");
-            gravity_scale.0 = 10.0;
+            gravity_scale.0 = 8.0;
             if let Some(mut m) = materials.get_mut(material_3d) {
                 m.base_color = HEAVY_BALL_COLOR;
             }
@@ -466,6 +467,20 @@ fn reset_world(
         resetable.reset(&mut transform);
         linear_velocity.0 = Vec3::ZERO;
         angular_velocity.0 = Vec3::ZERO;
+    }
+}
+
+fn reset_balls(
+    _on: On<ResetWorld>,
+    mut query: Query<(&mut GravityScale, &MeshMaterial3d<StandardMaterial>), With<Ball>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    println!("reset balls");
+    for (mut gravity_scale, material_3d) in &mut query {
+        gravity_scale.0 = 1.0;
+        if let Some(mut m) = materials.get_mut(material_3d) {
+            m.base_color = BALL_COLOR;
+        }
     }
 }
 
