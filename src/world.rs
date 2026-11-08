@@ -22,7 +22,7 @@ fn setup_world(
             base_color: Color::srgb(0.5, 0.5, 0.5),
             ..default()
         })),
-        Transform::from_xyz(0.0, 10.0, 0.0),
+        Transform::from_xyz(0.0, 10.0, -4.0),
         AngularVelocity(Vec3::new(0.5, 2.0, 1.0)),
     ));
 }

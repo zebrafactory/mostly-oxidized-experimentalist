@@ -153,7 +153,7 @@ fn setup(
             LockedAxes::ROTATION_LOCKED,
             LinearDamping(2.5),
             GravityScale(2.5),
-            Resetable::from_xyz(0.0, 0.0, 0.0),
+            Resetable::from_xyz(0.0, 0.0, 4.0),
         ))
         .with_children(|parent| {
             parent
@@ -238,7 +238,7 @@ fn setup(
         commands.spawn((
             PointLight {
                 shadow_maps_enabled: true,
-                //contact_shadows_enabled: true,
+                contact_shadows_enabled: true,
                 intensity: 999_000.0,
                 ..default()
             },
