@@ -6,11 +6,11 @@ use bevy::{
 };
 use std::f32::consts::FRAC_PI_2;
 
-mod particle;
 mod character;
+mod particle;
 mod world;
-use crate::particle::*;
 use crate::character::*;
+use crate::particle::*;
 
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
