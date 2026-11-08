@@ -30,7 +30,7 @@ pub fn add_character(
         WorldAssetRoot(asset_server.load(GltfAssetLabel::Scene(0).from_asset("homunculus.glb")));
 
     commands
-        .spawn((animation_to_play, mesh))
+        .spawn((animation_to_play, mesh, Transform::from_xyz(0.0, -2.5, 0.0)))
         .observe(play_animation_when_ready);
 }
 

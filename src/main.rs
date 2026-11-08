@@ -77,10 +77,7 @@ struct Player {
 struct PlayerHead;
 
 #[derive(Component)]
-struct Ball {
-    contacts: usize,
-    in_flight: bool,
-}
+struct Ball;
 
 #[derive(Event)]
 struct ResetWorld;
@@ -114,10 +111,11 @@ fn main() {
             Update,
             (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
         )
-        .add_systems(Update, player_collision)
+        .add_systems(Update, (player_collision, check_player_position))
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .add_observer(reset_balls)
+        .add_observer(reset_player_head)
         .add_observer(toggle_camera)
         .add_observer(toggle_fullscreen)
         .add_observer(un_fullscreen)
@@ -213,10 +211,7 @@ fn setup(
         // Balls on sea-saw
         for sign in [-1.0, 1.0] {
             commands.spawn((
-                Ball {
-                    contacts: 0,
-                    in_flight: false,
-                },
+                Ball,
                 RigidBody::Dynamic,
                 Collider::sphere(BALL_RADIUS),
                 CollidingEntities::default(),
@@ -265,7 +260,7 @@ fn setup(
     ));
 }
 
-fn player_collision(mut commands: Commands, single: Single<(&CollidingEntities, &mut Player)>) {
+fn player_collision(single: Single<(&CollidingEntities, &mut Player)>) {
     let (colliding_entities, mut player) = single.into_inner();
     if colliding_entities.len() != player.contacts {
         match colliding_entities.len() {
@@ -400,12 +395,17 @@ fn ray_cast_system(
         if let Ok((mut gravity_scale, material_3d)) = query.get_mut(*entity) {
             // Changing ColliderDensity should wourk too in theory, but doesn't,
             // so use GravityScale.
-            println!("hit {gravity_scale:?}");
             gravity_scale.0 = 8.0;
             if let Some(mut m) = materials.get_mut(material_3d) {
                 m.base_color = HEAVY_BALL_COLOR;
             }
         }
+    }
+}
+
+fn check_player_position(mut commands: Commands, transform: Single<&Transform, With<Player>>) {
+    if transform.translation.y < -33.0 {
+        commands.trigger(ResetWorld);
     }
 }
 
@@ -437,6 +437,11 @@ fn reset_balls(
             m.base_color = BALL_COLOR;
         }
     }
+}
+
+fn reset_player_head(_on: On<ResetWorld>, mut transform: Single<&mut Transform, With<PlayerHead>>) {
+    let (yaw, _pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
+    transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, 0.0, roll);
 }
 
 fn toggle_camera(_on: On<ToggleCamera>, mut transform: Single<&mut Transform, With<Camera3d>>) {
