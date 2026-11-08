@@ -17,7 +17,7 @@ const LEVELS: usize = 2;
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
-const BALL_RADIUS: f32 = 2.5;
+const BALL_RADIUS: f32 = 2.0;
 const GAP: f32 = 0.1;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + GAP;
 const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - GAP);
@@ -32,6 +32,8 @@ const PLAYER_COLOR: Color = Color::srgb(0.2, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
 const BALL_COLOR: Color = Color::srgb(0.8, 0.8, 0.8);
 const HEAVY_BALL_COLOR: Color = Color::srgb(0.4, 0.4, 0.8);
+
+const CAP_COLOR: Color = Color::srgb(0.4, 0.4, 0.4);
 
 const LINEAR_ACCELERATION: f32 = 30.0; // m/s^2
 const JUMP_IMPULSE: f32 = 17.0; // m/s
@@ -78,6 +80,7 @@ impl Resetable {
 struct Player {
     contacts: usize,
     in_flight: bool,
+    has_won: bool,
 }
 
 #[derive(Component)]
@@ -116,6 +119,9 @@ struct YouWon;
 #[derive(Resource, Deref)]
 struct JumpSound(Handle<AudioSource>);
 
+#[derive(Resource, Deref)]
+struct VictorySound(Handle<AudioSource>);
+
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
@@ -149,12 +155,16 @@ fn setup(
     let sound = asset_server.load("breakout_collision.ogg");
     commands.insert_resource(JumpSound(sound));
 
+    let sound = asset_server.load("587173__derplayer__firework_rocket_ignition.ogg");
+    commands.insert_resource(VictorySound(sound));
+
     // The Player (a camera in a collider)
     commands
         .spawn((
             Player {
                 contacts: 0,
                 in_flight: false,
+                has_won: false,
             },
             RigidBody::Dynamic,
             Collider::capsule(PLAYER_RADIUS, PLAYER_HALF_HEIGHT),
@@ -213,6 +223,26 @@ fn setup(
                 Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, z_offset),
             ));
         }
+        commands.spawn((
+            RigidBody::Static,
+            Collider::cuboid(ROOM.y, ROOM.y, BEAM_WIDTH),
+            Mesh3d(meshes.add(Cuboid::new(ROOM.y, ROOM.y, BEAM_WIDTH))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: CAP_COLOR,
+                ..default()
+            })),
+            Transform::from_xyz(0.0, 0.0, z_offset - (ROOM.z - BEAM_WIDTH) * 0.5),
+        ));
+        commands.spawn((
+            RigidBody::Static,
+            Collider::cuboid(ROOM.y, ROOM.y, BEAM_WIDTH),
+            Mesh3d(meshes.add(Cuboid::new(ROOM.y, ROOM.y, BEAM_WIDTH))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: CAP_COLOR,
+                ..default()
+            })),
+            Transform::from_xyz(0.0, 0.0, z_offset - ROOM.z * 0.5 - BEAM_WIDTH * 1.5),
+        ));
 
         // The sea-saw beam
         commands.spawn((
@@ -457,13 +487,17 @@ fn ray_cast_system(
     }
 }
 
-fn check_player_position(mut commands: Commands, transform: Single<&Transform, With<Player>>) {
+fn check_player_position(mut commands: Commands, mut single: Single<(&Transform, &mut Player)>) {
+    let (transform, mut player) = single.into_inner();
     if transform.translation.y < -20.0 {
         commands.trigger(ResetWorld);
     }
     let end = -LEVEL_LENGTH * LEVELS as f32 + ROOM.z * 0.5;
-    if transform.translation.z < end {
-        commands.trigger(YouWon)
+    if transform.translation.z < end && !player.in_flight {
+        if !player.has_won {
+            player.has_won = true;
+            commands.trigger(YouWon);
+        }
     }
 }
 
@@ -505,12 +539,15 @@ fn you_won(
     _on: On<YouWon>,
     mut query: Query<&MeshMaterial3d<StandardMaterial>, With<EndFloor>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut commands: Commands,
+    sound: Res<VictorySound>,
 ) {
     for material_3d in &mut query {
         if let Some(mut m) = materials.get_mut(material_3d) {
             m.base_color = WIN_FLOOR_COLOR;
         }
     }
+    commands.spawn((AudioPlayer(sound.clone()), PlaybackSettings::DESPAWN));
 }
 
 fn toggle_camera(_on: On<ToggleCamera>, mut transform: Single<&mut Transform, With<Camera3d>>) {

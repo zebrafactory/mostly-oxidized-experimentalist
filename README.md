@@ -20,3 +20,5 @@ For iterating with native build:
 sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev
 cargo run
 ```
+
+Rocket sound effect: https://freesound.org/people/derplayer/sounds/587173/
