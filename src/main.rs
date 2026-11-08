@@ -33,7 +33,7 @@ const JUMP_IMPULSE: f32 = 17.0; // m/s
 
 const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
 
-const ROOM: Vec3 = Vec3::new(20.0, 2.0, 30.0);
+const ROOM: Vec3 = Vec3::new(20.0, 5.0, 30.0);
 const WALL: f32 = 0.5;
 
 #[derive(Component)]
@@ -101,7 +101,7 @@ struct UnFullscreen;
 struct PlayerLanded;
 
 #[derive(Resource, Deref)]
-struct LandingSound(Handle<AudioSource>);
+struct JumpSound(Handle<AudioSource>);
 
 fn main() {
     App::new()
@@ -114,7 +114,7 @@ fn main() {
             Update,
             (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
         )
-        .add_systems(Update, (player_collision, ball_collision))
+        .add_systems(Update, player_collision)
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .add_observer(reset_balls)
@@ -132,7 +132,7 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     let sound = asset_server.load("breakout_collision.ogg");
-    commands.insert_resource(LandingSound(sound));
+    commands.insert_resource(JumpSound(sound));
 
     // The Player (a camera in a collider)
     commands
@@ -153,7 +153,7 @@ fn setup(
             LockedAxes::ROTATION_LOCKED,
             LinearDamping(2.5),
             GravityScale(2.5),
-            Resetable::from_xyz(0.0, 0.0, 4.0),
+            Resetable::from_transform(Transform::from_xyz(6.0, 4.0, 8.0)),
         ))
         .with_children(|parent| {
             parent
@@ -273,32 +273,10 @@ fn player_collision(mut commands: Commands, single: Single<(&CollidingEntities, 
                 player.in_flight = true;
             }
             _ => {
-                if player.in_flight {
-                    commands.trigger(PlayerLanded);
-                }
                 player.in_flight = false;
             }
         }
         player.contacts = colliding_entities.len();
-    }
-}
-
-fn ball_collision(mut commands: Commands, mut query: Query<(&CollidingEntities, &mut Ball)>) {
-    for (colliding_entities, mut ball) in &mut query {
-        if colliding_entities.len() != ball.contacts {
-            match colliding_entities.len() {
-                0 => {
-                    ball.in_flight = true;
-                }
-                _ => {
-                    if ball.in_flight {
-                        commands.trigger(PlayerLanded);
-                    }
-                    ball.in_flight = false;
-                }
-            }
-            ball.contacts = colliding_entities.len();
-        }
     }
 }
 
@@ -331,6 +309,7 @@ fn button_input(
     }
     if keyboard.just_pressed(KeyCode::Space) {
         if !player.in_flight {
+            commands.trigger(PlayerLanded);
             linear_velocity.y = JUMP_IMPULSE;
         }
     }
@@ -491,6 +470,6 @@ fn un_fullscreen(_on: On<UnFullscreen>, mut window: Single<&mut Window, With<Pri
     window.mode = WindowMode::Windowed;
 }
 
-fn play_landing_sound(_on: On<PlayerLanded>, mut commands: Commands, sound: Res<LandingSound>) {
+fn play_landing_sound(_on: On<PlayerLanded>, mut commands: Commands, sound: Res<JumpSound>) {
     commands.spawn((AudioPlayer(sound.clone()), PlaybackSettings::DESPAWN));
 }
