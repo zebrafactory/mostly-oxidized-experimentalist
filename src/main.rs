@@ -7,12 +7,13 @@ use bevy::{
 use std::f32::consts::FRAC_PI_2;
 
 mod particle;
+mod world;
 use crate::particle::*;
 
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
-const BALL_RADIUS: f32 = 1.5;
+const BALL_RADIUS: f32 = 2.5;
 const GAP: f32 = 0.1;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + GAP;
 const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - GAP);
@@ -30,7 +31,7 @@ const JUMP_IMPULSE: f32 = 17.0; // m/s
 
 const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
 
-const ROOM: Vec3 = Vec3::new(20.0, 4.0, 30.0);
+const ROOM: Vec3 = Vec3::new(20.0, 2.0, 30.0);
 const WALL: f32 = 0.5;
 
 #[derive(Component)]
@@ -103,6 +104,7 @@ struct LandingSound(Handle<AudioSource>);
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
+        .add_plugins(world::WorldPlugin)
         .add_systems(Startup, setup)
         //.add_systems(Startup, add_particle)
         .add_systems(
