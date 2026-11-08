@@ -16,8 +16,8 @@ fn setup_world(
 ) {
     commands.spawn((
         RigidBody::Dynamic,
-        Collider::cuboid(1.0, 2.0, 3.0),
-        Mesh3d(meshes.add(Cuboid::new(1.0, 2.0, 3.0))),
+        Collider::cuboid(1.0, 2.0, 0.5),
+        Mesh3d(meshes.add(Cuboid::new(1.0, 2.0, 0.5))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: Color::srgb(0.5, 0.5, 0.5),
             ..default()
