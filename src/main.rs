@@ -7,8 +7,10 @@ use bevy::{
 use std::f32::consts::FRAC_PI_2;
 
 mod particle;
+mod character;
 mod world;
 use crate::particle::*;
+use crate::character::*;
 
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
@@ -107,6 +109,7 @@ fn main() {
         .add_plugins(world::WorldPlugin)
         .add_systems(Startup, setup)
         //.add_systems(Startup, add_particle)
+        .add_systems(Startup, add_character)
         .add_systems(
             Update,
             (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
