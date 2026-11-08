@@ -12,6 +12,8 @@ mod world;
 use crate::character::*;
 use crate::particle::*;
 
+const LEVELS: usize = 2;
+
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
 const PLAYER_HALF_HEIGHT: f32 = 1.0;
@@ -22,6 +24,9 @@ const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - GAP);
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
+const END_FLOOR_COLOR: Color = Color::srgb(0.2, 0.2, 0.8);
+const WIN_FLOOR_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
+const END_WALL_COLOR: Color = Color::srgb(0.2, 0.8, 0.2);
 
 const PLAYER_COLOR: Color = Color::srgb(0.2, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
@@ -35,6 +40,8 @@ const CAMERA_3D_PERSON_DISTANCE: f32 = 4.0;
 
 const ROOM: Vec3 = Vec3::new(20.0, 5.0, 30.0);
 const WALL: f32 = 0.5;
+
+const LEVEL_LENGTH: f32 = ROOM.z + BEAM_WIDTH;
 
 #[derive(Component)]
 struct Resetable {
@@ -79,6 +86,12 @@ struct PlayerHead;
 #[derive(Component)]
 struct Ball;
 
+#[derive(Component)]
+struct Floor;
+
+#[derive(Component)]
+struct EndFloor;
+
 #[derive(Event)]
 struct ResetWorld;
 
@@ -96,6 +109,9 @@ struct UnFullscreen;
 
 #[derive(Event)]
 struct PlayerLanded;
+
+#[derive(Event)]
+struct YouWon;
 
 #[derive(Resource, Deref)]
 struct JumpSound(Handle<AudioSource>);
@@ -120,6 +136,7 @@ fn main() {
         .add_observer(toggle_fullscreen)
         .add_observer(un_fullscreen)
         .add_observer(play_landing_sound)
+        .add_observer(you_won)
         .run();
 }
 
@@ -151,7 +168,7 @@ fn setup(
             LockedAxes::ROTATION_LOCKED,
             LinearDamping(2.5),
             GravityScale(2.5),
-            Resetable::from_transform(Transform::from_xyz(6.0, 4.0, 8.0)),
+            Resetable::from_transform(Transform::from_xyz(6.0, 6.0, 8.0)),
         ))
         .with_children(|parent| {
             parent
@@ -171,12 +188,13 @@ fn setup(
         });
 
     // Floor and side walls
-    for i in 0..8 {
-        let z_offset = -(ROOM.z + BEAM_WIDTH) * i as f32;
+    for i in 0..LEVELS {
+        let z_offset = -LEVEL_LENGTH * i as f32;
         commands.spawn((
+            Floor,
             RigidBody::Static,
-            Collider::cuboid(ROOM.x, WALL, ROOM.z),
-            Mesh3d(meshes.add(Cuboid::new(ROOM.x, WALL, ROOM.z))),
+            Collider::cuboid(ROOM.x + WALL * 2.0, WALL, ROOM.z),
+            Mesh3d(meshes.add(Cuboid::new(ROOM.x + WALL * 2.0, WALL, ROOM.z))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: FLOOR_COLOR,
                 ..default()
@@ -240,6 +258,42 @@ fn setup(
             Transform::from_xyz(6.0, 9.0, z_offset - 6.0),
         ));
     }
+
+    // The final room
+    let z_offset = -LEVEL_LENGTH * LEVELS as f32;
+    commands.spawn((
+        EndFloor,
+        RigidBody::Static,
+        Collider::cuboid(ROOM.x + WALL * 2.0, WALL, ROOM.z),
+        Mesh3d(meshes.add(Cuboid::new(ROOM.x + WALL * 2.0, WALL, ROOM.z))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: END_FLOOR_COLOR,
+            ..default()
+        })),
+        Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, z_offset),
+    ));
+    for sign in [-1.0, 1.0] {
+        commands.spawn((
+            RigidBody::Static,
+            Collider::cuboid(WALL, ROOM.y, ROOM.z),
+            Mesh3d(meshes.add(Cuboid::new(WALL, ROOM.y, ROOM.z))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: END_WALL_COLOR,
+                ..default()
+            })),
+            Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, z_offset),
+        ));
+    }
+    commands.spawn((
+        RigidBody::Static,
+        Collider::cuboid(ROOM.x, ROOM.y, WALL),
+        Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, WALL))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: END_WALL_COLOR,
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 0.0, z_offset - ROOM.z * 0.5),
+    ));
 
     // Crosshairs for pointing your Alchemy
     commands.spawn((
@@ -404,8 +458,12 @@ fn ray_cast_system(
 }
 
 fn check_player_position(mut commands: Commands, transform: Single<&Transform, With<Player>>) {
-    if transform.translation.y < -33.0 {
+    if transform.translation.y < -20.0 {
         commands.trigger(ResetWorld);
+    }
+    let end = -LEVEL_LENGTH * LEVELS as f32 + ROOM.z * 0.5;
+    if transform.translation.z < end {
+        commands.trigger(YouWon)
     }
 }
 
@@ -430,7 +488,6 @@ fn reset_balls(
     mut query: Query<(&mut GravityScale, &MeshMaterial3d<StandardMaterial>), With<Ball>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    println!("reset balls");
     for (mut gravity_scale, material_3d) in &mut query {
         gravity_scale.0 = 1.0;
         if let Some(mut m) = materials.get_mut(material_3d) {
@@ -442,6 +499,18 @@ fn reset_balls(
 fn reset_player_head(_on: On<ResetWorld>, mut transform: Single<&mut Transform, With<PlayerHead>>) {
     let (yaw, _pitch, roll) = transform.rotation.to_euler(EulerRot::YXZ);
     transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, 0.0, roll);
+}
+
+fn you_won(
+    _on: On<YouWon>,
+    mut query: Query<&MeshMaterial3d<StandardMaterial>, With<EndFloor>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for material_3d in &mut query {
+        if let Some(mut m) = materials.get_mut(material_3d) {
+            m.base_color = WIN_FLOOR_COLOR;
+        }
+    }
 }
 
 fn toggle_camera(_on: On<ToggleCamera>, mut transform: Single<&mut Transform, With<Camera3d>>) {
