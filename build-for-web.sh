@@ -6,3 +6,4 @@ wasm-bindgen --target web --no-typescript --out-dir target/web/ target/wasm32-un
 wasm-opt -Oz -o target/web/mostly-oxidized-experimentalist_bg.wasm target/web/mostly-oxidized-experimentalist_bg.wasm
 cp index.html target/web/
 cp -r assets/ target/web/
+zip -r target/mostly-oxidized-experimentalist.zip target/web/

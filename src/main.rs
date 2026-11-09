@@ -26,7 +26,6 @@ const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
 
 const END_COLOR: Color = Color::srgb(0.0, 0.0, 0.0);
-const WIN_COLOR: Color = Color::srgb(0.8, 0.7, 0.7);
 
 const PLAYER_COLOR: Color = Color::srgb(0.2, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
@@ -497,7 +496,7 @@ fn ray_cast_system(
     }
 }
 
-fn check_player_position(mut commands: Commands, mut single: Single<(&Transform, &mut Player)>) {
+fn check_player_position(mut commands: Commands, single: Single<(&Transform, &mut Player)>) {
     let (transform, mut player) = single.into_inner();
     if transform.translation.y < -20.0 {
         commands.trigger(ResetWorld);
