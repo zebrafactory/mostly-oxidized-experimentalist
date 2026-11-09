@@ -12,7 +12,7 @@ mod world;
 use crate::character::*;
 use crate::particle::*;
 
-const LEVELS: usize = 2;
+const LEVELS: usize = 4;
 
 const PITCH_LIMIT: f32 = FRAC_PI_2 - 0.02;
 const PLAYER_RADIUS: f32 = 0.35;
@@ -24,9 +24,9 @@ const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - GAP);
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
-const END_FLOOR_COLOR: Color = Color::srgb(0.2, 0.2, 0.8);
-const WIN_FLOOR_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
-const END_WALL_COLOR: Color = Color::srgb(0.2, 0.8, 0.2);
+
+const END_COLOR: Color = Color::srgb(0.0, 0.0, 0.0);
+const WIN_COLOR: Color = Color::srgb(0.8, 0.7, 0.7);
 
 const PLAYER_COLOR: Color = Color::srgb(0.2, 0.1, 0.1);
 const BEAM_COLOR: Color = Color::srgb(0.4, 0.7, 0.9);
@@ -223,26 +223,21 @@ fn setup(
                 Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, z_offset),
             ));
         }
-        commands.spawn((
-            RigidBody::Static,
-            Collider::cuboid(ROOM.y, ROOM.y, BEAM_WIDTH),
-            Mesh3d(meshes.add(Cuboid::new(ROOM.y, ROOM.y, BEAM_WIDTH))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: CAP_COLOR,
-                ..default()
-            })),
-            Transform::from_xyz(0.0, 0.0, z_offset - (ROOM.z - BEAM_WIDTH) * 0.5),
-        ));
-        commands.spawn((
-            RigidBody::Static,
-            Collider::cuboid(ROOM.y, ROOM.y, BEAM_WIDTH),
-            Mesh3d(meshes.add(Cuboid::new(ROOM.y, ROOM.y, BEAM_WIDTH))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: CAP_COLOR,
-                ..default()
-            })),
-            Transform::from_xyz(0.0, 0.0, z_offset - ROOM.z * 0.5 - BEAM_WIDTH * 1.5),
-        ));
+        for cap_z in [
+            z_offset - (ROOM.z - BEAM_WIDTH) * 0.5,
+            z_offset - ROOM.z * 0.5 - BEAM_WIDTH * 1.5,
+        ] {
+            commands.spawn((
+                RigidBody::Static,
+                Collider::cuboid(ROOM.y, ROOM.y, BEAM_WIDTH),
+                Mesh3d(meshes.add(Cuboid::new(ROOM.y, ROOM.y, BEAM_WIDTH))),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    base_color: CAP_COLOR,
+                    ..default()
+                })),
+                Transform::from_xyz(0.0, 0.0, cap_z),
+            ));
+        }
 
         // The sea-saw beam
         commands.spawn((
@@ -297,7 +292,7 @@ fn setup(
         Collider::cuboid(ROOM.x + WALL * 2.0, WALL, ROOM.z),
         Mesh3d(meshes.add(Cuboid::new(ROOM.x + WALL * 2.0, WALL, ROOM.z))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: END_FLOOR_COLOR,
+            base_color: END_COLOR,
             ..default()
         })),
         Transform::from_xyz(0.0, (ROOM.y + WALL) * -0.5, z_offset),
@@ -308,7 +303,7 @@ fn setup(
             Collider::cuboid(WALL, ROOM.y, ROOM.z),
             Mesh3d(meshes.add(Cuboid::new(WALL, ROOM.y, ROOM.z))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: END_WALL_COLOR,
+                base_color: END_COLOR,
                 ..default()
             })),
             Transform::from_xyz((ROOM.x + WALL) * 0.5 * sign, 0.0, z_offset),
@@ -319,7 +314,7 @@ fn setup(
         Collider::cuboid(ROOM.x, ROOM.y, WALL),
         Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, WALL))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: END_WALL_COLOR,
+            base_color: END_COLOR,
             ..default()
         })),
         Transform::from_xyz(0.0, 0.0, z_offset - ROOM.z * 0.5),
@@ -493,11 +488,9 @@ fn check_player_position(mut commands: Commands, mut single: Single<(&Transform,
         commands.trigger(ResetWorld);
     }
     let end = -LEVEL_LENGTH * LEVELS as f32 + ROOM.z * 0.5;
-    if transform.translation.z < end && !player.in_flight {
-        if !player.has_won {
-            player.has_won = true;
-            commands.trigger(YouWon);
-        }
+    if transform.translation.z < end && !player.in_flight && !player.has_won {
+        player.has_won = true;
+        commands.trigger(YouWon);
     }
 }
 
@@ -544,7 +537,7 @@ fn you_won(
 ) {
     for material_3d in &mut query {
         if let Some(mut m) = materials.get_mut(material_3d) {
-            m.base_color = WIN_FLOOR_COLOR;
+            m.base_color = WIN_COLOR;
         }
     }
     commands.spawn((AudioPlayer(sound.clone()), PlaybackSettings::DESPAWN));
