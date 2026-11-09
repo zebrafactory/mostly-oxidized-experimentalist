@@ -129,6 +129,8 @@ fn main() {
         .add_systems(Startup, setup)
         //.add_systems(Startup, add_particle)
         .add_systems(Startup, add_character)
+        .add_systems(Update, init_character_animations)
+        .add_systems(Update, sync_character_weights)
         .add_systems(
             Update,
             (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
