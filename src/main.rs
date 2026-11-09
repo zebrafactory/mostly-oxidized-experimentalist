@@ -135,7 +135,10 @@ fn main() {
             Update,
             (mouse_move_yaw, mouse_move_pitch, mouse_wheel, button_input).chain(),
         )
-        .add_systems(Update, (player_collision, check_player_position))
+        .add_systems(
+            Update,
+            (player_collision, check_player_position, animated_win),
+        )
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
         .add_observer(reset_balls)
@@ -549,10 +552,25 @@ fn you_won(
 ) {
     for material_3d in &mut query {
         if let Some(mut m) = materials.get_mut(material_3d) {
-            m.base_color = WIN_COLOR;
+            let hsla = Hsla::hsl(0.0, 1.0, 0.5);
+            m.base_color = Color::from(hsla);
         }
     }
     commands.spawn((AudioPlayer(sound.clone()), PlaybackSettings::DESPAWN));
+}
+
+fn animated_win(
+    query: Query<&MeshMaterial3d<StandardMaterial>, With<EndFloor>>,
+    time: Res<Time>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for handle in &query {
+        if let Some(mut material) = materials.get_mut(handle)
+            && let Color::Hsla(ref mut hsla) = material.base_color
+        {
+            *hsla = hsla.rotate_hue(time.delta_secs() * 100.0);
+        }
+    }
 }
 
 fn toggle_camera(_on: On<ToggleCamera>, mut transform: Single<&mut Transform, With<Camera3d>>) {
