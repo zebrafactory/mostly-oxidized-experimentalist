@@ -194,10 +194,7 @@ fn setup(
                     InheritedVisibility::VISIBLE,
                 ))
                 .with_children(|sub_parent| {
-                    sub_parent.spawn((
-                        Camera3d::default(),
-                        Transform::from_xyz(0.0, 0.0, CAMERA_3D_PERSON_DISTANCE),
-                    ));
+                    sub_parent.spawn((Camera3d::default(), Transform::from_xyz(0.0, 0.0, 0.0)));
                 });
         });
 
