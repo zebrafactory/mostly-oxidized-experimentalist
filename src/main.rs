@@ -198,6 +198,16 @@ fn setup(
         });
 
     // Floor and side walls
+    commands.spawn((
+        RigidBody::Static,
+        Collider::cuboid(ROOM.x, ROOM.y, WALL),
+        Mesh3d(meshes.add(Cuboid::new(ROOM.x, ROOM.y, WALL))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: WALL_COLOR,
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 0.0, ROOM.z * 0.5),
+    ));
     for i in 0..LEVELS {
         let z_offset = -LEVEL_LENGTH * i as f32;
         commands.spawn((
