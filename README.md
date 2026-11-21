@@ -6,6 +6,14 @@ We like [Bevy](https://bevy.org/).
 
 We like [Rust](https://rust-lang.org/).
 
+As an up and coming Alchemist, you have just one ability: you can increase the density of spherical objects. Super specific skill, so hopefully it can get you out of your current Jam!
+
+[Play the entry one itch.io!](https://json420.itch.io/mostly-oxidized-experimentalist)
+
+This repository has been updated since the content ended, but the build we entered remains the same.
+Some further work will continue.
+
+
 ```sh
 rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --locked

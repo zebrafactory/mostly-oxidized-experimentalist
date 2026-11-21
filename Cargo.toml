@@ -2,6 +2,7 @@
 name = "mostly-oxidized-experimentalist"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.100.0"
 
 [dependencies]
 avian3d = "0.8.0"
