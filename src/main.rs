@@ -1,5 +1,6 @@
 use avian3d::prelude::*;
 use bevy::{
+    dev_tools::fps_overlay::FpsOverlayPlugin,
     input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
     prelude::*,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow, WindowMode},
@@ -123,7 +124,11 @@ struct VictorySound(Handle<AudioSource>);
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
+        .add_plugins((
+            DefaultPlugins,
+            FpsOverlayPlugin::default(),
+            PhysicsPlugins::default(),
+        ))
         .add_plugins(world::WorldPlugin)
         .add_systems(Startup, setup)
         //.add_systems(Startup, add_particle)
