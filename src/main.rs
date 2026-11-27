@@ -1,11 +1,11 @@
-use avian3d::prelude::*;
+use avian3d::{math::RVec3, prelude::*};
 use bevy::{
     dev_tools::fps_overlay::FpsOverlayPlugin,
     input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
     prelude::*,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow, WindowMode},
 };
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 mod character;
 mod particle;
@@ -22,6 +22,7 @@ const BALL_RADIUS: f32 = 2.0;
 const GAP: f32 = 0.1;
 const BEAM_WIDTH: f32 = BALL_RADIUS * 2.0 + GAP;
 const BEAM: Vec3 = Vec3::new(ROOM.x, ROOM.y, BEAM_WIDTH - GAP);
+const MAX_SLOPE_ANGLE: f32 = PI * 0.45;
 
 const FLOOR_COLOR: Color = Color::srgb(0.9, 0.7, 0.8);
 const WALL_COLOR: Color = Color::srgb(0.3, 0.0, 0.3);
@@ -95,6 +96,13 @@ struct Floor;
 #[derive(Component)]
 struct EndFloor;
 
+#[derive(Component)]
+pub struct MaxSlopeAngle(f32);
+
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub struct Grounded;
+
 #[derive(Event)]
 struct ResetWorld;
 
@@ -141,7 +149,7 @@ fn main() {
         )
         .add_systems(
             Update,
-            (player_collision, check_player_position, animated_win),
+            (update_grounded, check_player_position, animated_win),
         )
         .add_observer(ray_cast_system)
         .add_observer(reset_world)
@@ -175,8 +183,16 @@ fn setup(
                 in_flight: false,
                 has_won: false,
             },
+            MaxSlopeAngle(MAX_SLOPE_ANGLE),
             RigidBody::Dynamic,
             Collider::capsule(PLAYER_RADIUS, PLAYER_HALF_HEIGHT),
+            ShapeCaster::new(
+                Collider::capsule(PLAYER_RADIUS, PLAYER_HALF_HEIGHT),
+                RVec3::ZERO,
+                Quat::default(),
+                Dir3::NEG_Y,
+            )
+            .with_max_distance(0.1),
             CollidingEntities::default(),
             Mesh3d(meshes.add(Capsule3d::new(PLAYER_RADIUS, PLAYER_HALF_HEIGHT))),
             MeshMaterial3d(materials.add(StandardMaterial {
@@ -367,6 +383,31 @@ fn player_collision(single: Single<(&CollidingEntities, &mut Player)>) {
             }
         }
         player.contacts = colliding_entities.len();
+    }
+}
+
+/// Updates the [`Grounded`] status for character controllers.
+fn update_grounded(
+    mut commands: Commands,
+    mut query: Query<(Entity, &ShapeHits, &Rotation, Option<&MaxSlopeAngle>), With<Player>>,
+) {
+    for (entity, hits, rotation, max_slope_angle) in &mut query {
+        // The character is grounded if the shape caster has a hit with a normal
+        // that isn't too steep.
+        let is_grounded = hits.iter().any(|hit| {
+            if let Some(angle) = max_slope_angle {
+                let between = (rotation * -hit.normal2).angle_between(Vec3::Y).abs();
+                //println!("contact with {entity} {between}");
+                between <= angle.0
+            } else {
+                true
+            }
+        });
+        if is_grounded {
+            commands.entity(entity).insert(Grounded);
+        } else {
+            commands.entity(entity).remove::<Grounded>();
+        }
     }
 }
 
